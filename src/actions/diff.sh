@@ -18,9 +18,8 @@ gits:diff() {
         gits:commit "$@"
         return
     }
-    echo "$*"
 
-    gits:local-help diff "$@"
+    gits:local-help-noempty diff "$@"
 
     local item
 

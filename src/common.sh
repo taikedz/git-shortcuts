@@ -6,8 +6,17 @@ gits:common:fetch-status() {
 gits:local-help() {
     local section="$1"; shift
 
-    if [[ -z "$*" ]] || [[ "$*" =~ --help ]]; then
+    if [[ "$*" =~ --help ]]; then
         autohelp:print "help-$section"
         exit 0
     fi
+}
+
+gits:local-help-noempty() {
+    if [[ -z "$*" ]]; then
+        autohelp:print "help-$section"
+        exit 0
+    fi
+
+    gits:local-help "$@"
 }

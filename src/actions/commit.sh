@@ -1,4 +1,4 @@
-### Commit -m[m] [MESSAGE] Usage:commit
+### Commit -m[m] [MESSAGE] Usage:help-commit
 #
 # After a series of items, if -m or -mm are found, performs an add + commit
 #
@@ -10,6 +10,7 @@
 ###/doc
 
 gits:commit() {
+    # need to add help that does not catch --help as part of message
     local files item arguments
     files=()
     arguments=()

@@ -406,10 +406,19 @@ gits:common:fetch-status() {
 gits:local-help() {
     local section="$1"; shift
 
-    if [[ -z "$*" ]] || [[ "$*" =~ --help ]]; then
+    if [[ "$*" =~ --help ]]; then
         autohelp:print "help-$section"
         exit 0
     fi
+}
+
+gits:local-help-noempty() {
+    if [[ -z "$*" ]]; then
+        autohelp:print "help-$section"
+        exit 0
+    fi
+
+    gits:local-help "$@"
 }
 
 ### diff FILE ... Usage:help-diff
@@ -432,9 +441,8 @@ gits:diff() {
         gits:commit "$@"
         return
     }
-    echo "$*"
 
-    gits:local-help diff "$@"
+    gits:local-help-noempty diff "$@"
 
     local item
 
@@ -442,7 +450,7 @@ gits:diff() {
         git diff --color HEAD -- "$item" | less -R
     done
 }
-### Commit -m[m] [MESSAGE] Usage:commit
+### Commit -m[m] [MESSAGE] Usage:help-commit
 #
 # After a series of items, if -m or -mm are found, performs an add + commit
 #
@@ -454,6 +462,7 @@ gits:diff() {
 ###/doc
 
 gits:commit() {
+    # need to add help that does not catch --help as part of message
     local files item arguments
     files=()
     arguments=()
