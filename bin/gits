@@ -1,0 +1,431 @@
+#!/usr/bin/env bash
+
+
+##bash-libs: autohelp.sh @ e4c5a615 (1.1)
+
+### autohelp:print [ SECTION [FILE] ] Usage:bbuild
+# Write your help as documentation comments in your script
+#
+# If you need to output the help from your script, or a file, call the
+# `autohelp:print` function and it will print the help documentation
+# in the current script to stdout
+#
+# A help comment looks like this:
+#
+#    ### <title> Usage:help
+#    #
+#    # <some content>
+#    #
+#    # end with "###/doc" on its own line (whitespaces before
+#    # and after are OK)
+#    #
+#    ###/doc
+#
+# You can set a different help section by specifying a subsection
+#
+# 	autohelp:print section2
+#
+# > This would print a section defined in this way:
+#
+# 	### Some title Usage:section2
+# 	# <some content>
+# 	###/doc
+#
+# You can set a different comment character by setting the 'HELPCHAR' environment variable:
+#
+# 	HELPCHAR=%
+#
+###/doc
+
+HELPCHAR='#'
+
+function autohelp:print {
+    local SECTION_STRING="${1:-}"; shift || :
+    local TARGETFILE="${1:-}"; shift || :
+    [[ -n "$SECTION_STRING" ]] || SECTION_STRING=help
+    [[ -n "$TARGETFILE" ]] || TARGETFILE="$0"
+
+        echo -e "\n$(basename "$TARGETFILE")\n===\n"
+        local SECSTART='^\s*'"$HELPCHAR$HELPCHAR$HELPCHAR"'\s+(.+?)\s+Usage:'"$SECTION_STRING"'\s*$'
+        local SECEND='^\s*'"$HELPCHAR$HELPCHAR$HELPCHAR"'\s*/doc\s*$'
+        local insec=false
+
+        while read secline; do
+                if [[ "$secline" =~ $SECSTART ]]; then
+                        insec=true
+                        echo -e "\n${BASH_REMATCH[1]}\n---\n"
+
+                elif [[ "$insec" = true ]]; then
+                        if [[ "$secline" =~ $SECEND ]]; then
+                                insec=false
+                        else
+                echo "$secline" | sed -r "s/^\s*$HELPCHAR//g"
+                        fi
+                fi
+        done < "$TARGETFILE"
+
+        if [[ "$insec" = true ]]; then
+                echo "WARNING: Non-terminated help block." 1>&2
+        fi
+    echo ""
+}
+
+### autohelp:paged Usage:bbuild
+#
+# Display the help in the pager defined in the PAGER environment variable
+#
+###/doc
+function autohelp:paged {
+    : ${PAGER=less}
+    autohelp:print "$@" | $PAGER
+}
+
+### autohelp:check Usage:bbuild
+#
+# Automatically print help and exit if "--help" is detected in arguments
+#
+# Example use:
+#
+#    #!/bin/bash
+#
+#    ### Some help Usage:help
+#    #
+#    # Some help text
+#    #
+#    ###/doc
+#
+#    #%include autohelp.sh
+#
+#    main() {
+#        autohelp:check "$@"
+#
+#        # now add your code
+#    }
+#
+#    main "$@"
+#
+###/doc
+autohelp:check() {
+    if [[ "$*" =~ --help ]]; then
+        cols="$(tput cols)"
+        autohelp:print | fold -w "$cols" -s || autohelp:print
+        exit 0
+    fi
+}
+##bash-libs: out.sh @ e4c5a615 (1.1)
+
+##bash-libs: colours.sh @ e4c5a615 (1.1)
+
+### Colours for bash Usage:bbuild
+# A series of colour flags for use in outputs.
+#
+# Example:
+# 	
+# 	echo -e "${CRED}Some red text ${CBBLU} some blue text $CDEF some text in the terminal's default colour")
+#
+# Requires processing of escape characters.
+#
+# Colours available:
+#
+# CRED, CBRED, HLRED -- red, bold red, highlight red
+# CGRN, CBGRN, HLGRN -- green, bold green, highlight green
+# CYEL, CBYEL, HLYEL -- yellow, bold yellow, highlight yellow
+# CBLU, CBBLU, HLBLU -- blue, bold blue, highlight blue
+# CPUR, CBPUR, HLPUR -- purple, bold purple, highlight purple
+# CTEA, CBTEA, HLTEA -- teal, bold teal, highlight teal
+#
+# CDEF -- switches to the terminal default
+# CUNL -- add underline
+#
+# Note that highlight and underline must be applied or re-applied after specifying a colour.
+#
+# If the session is detected as being in a pipe, colours will be turned off.
+#   You can override this by calling `colours:check --color=always` at the start of your script
+#
+###/doc
+
+##bash-libs: tty.sh @ e4c5a615 (1.1)
+
+tty:is_ssh() {
+    [[ -n "$SSH_TTY" ]] || [[ -n "$SSH_CLIENT" ]] || [[ "$SSH_CONNECTION" ]]
+}
+
+tty:is_pipe() {
+    [[ ! -t 1 ]]
+}
+
+### colours:check ARGS Usage:bbuild
+#
+# Check the args to see if there's a `--color=always` or `--color=never`
+#   and reload the colours appropriately
+#
+###/doc
+colours:check() {
+    if [[ "$*" =~ --color=always ]]; then
+        COLOURS_ON=true
+    elif [[ "$*" =~ --color=never ]]; then
+        COLOURS_ON=false
+    fi
+
+    colours:define
+    return 0
+}
+
+colours:auto() {
+    if tty:is_pipe ; then
+        COLOURS_ON=false
+    else
+        COLOURS_ON=true
+    fi
+
+    colours:define
+    return 0
+}
+
+colours:define() {
+    if [[ "$COLOURS_ON" = false ]]; then
+
+        export CRED=''
+        export CGRN=''
+        export CYEL=''
+        export CBLU=''
+        export CPUR=''
+        export CTEA=''
+
+        export CBRED=''
+        export CBGRN=''
+        export CBYEL=''
+        export CBBLU=''
+        export CBPUR=''
+        export CBTEA=''
+
+        export HLRED=''
+        export HLGRN=''
+        export HLYEL=''
+        export HLBLU=''
+        export HLPUR=''
+        export HLTEA=''
+
+        export CDEF=''
+
+    else
+
+        export CRED=$(echo -e "\033[0;31m")
+        export CGRN=$(echo -e "\033[0;32m")
+        export CYEL=$(echo -e "\033[0;33m")
+        export CBLU=$(echo -e "\033[0;34m")
+        export CPUR=$(echo -e "\033[0;35m")
+        export CTEA=$(echo -e "\033[0;36m")
+
+        export CBRED=$(echo -e "\033[1;31m")
+        export CBGRN=$(echo -e "\033[1;32m")
+        export CBYEL=$(echo -e "\033[1;33m")
+        export CBBLU=$(echo -e "\033[1;34m")
+        export CBPUR=$(echo -e "\033[1;35m")
+        export CBTEA=$(echo -e "\033[1;36m")
+
+        export HLRED=$(echo -e "\033[41m")
+        export HLGRN=$(echo -e "\033[42m")
+        export HLYEL=$(echo -e "\033[43m")
+        export HLBLU=$(echo -e "\033[44m")
+        export HLPUR=$(echo -e "\033[45m")
+        export HLTEA=$(echo -e "\033[46m")
+
+        export CDEF=$(echo -e "\033[0m")
+
+    fi
+}
+
+colours:auto
+
+### Console output handlers Usage:bbuild
+#
+# Write data to console stderr using colouring
+#
+###/doc
+
+### out:info MESSAGE Usage:bbuild
+# print a green informational message to stderr
+###/doc
+function out:info {
+    echo "$CGRN$*$CDEF" 1>&2
+}
+
+### out:warn MESSAGE Usage:bbuild
+# print a yellow warning message to stderr
+###/doc
+function out:warn {
+    echo "${CBYEL}WARN: $CYEL$*$CDEF" 1>&2
+}
+
+### out:defer MESSAGE Usage:bbuild
+# Store a message in the output buffer for later use
+###/doc
+function out:defer {
+    OUTPUT_BUFFER_defer[${#OUTPUT_BUFFER_defer[@]}]="$*"
+}
+
+# Internal
+function out:buffer_initialize {
+    OUTPUT_BUFFER_defer=(:)
+}
+out:buffer_initialize
+
+### out:flush HANDLER ... Usage:bbuild
+#
+# Pass the output buffer to the command defined by HANDLER
+# and empty the buffer
+#
+# Examples:
+#
+# 	out:flush echo -e
+#
+# 	out:flush out:warn
+#
+# (escaped newlines are added in the buffer, so `-e` option is
+#  needed to process the escape sequences)
+#
+###/doc
+function out:flush {
+    [[ -n "$*" ]] || out:fail "Did not provide a command for buffered output\n\n${OUTPUT_BUFFER_defer[*]}"
+
+    [[ "${#OUTPUT_BUFFER_defer[@]}" -gt 1 ]] || return 0
+
+    for buffer_line in "${OUTPUT_BUFFER_defer[@]:1}"; do
+        "$@" "$buffer_line"
+    done
+
+    out:buffer_initialize
+}
+
+### out:fail [CODE] MESSAGE Usage:bbuild
+# print a red failure message to stderr and exit with CODE
+# CODE must be a number
+# if no code is specified, error code 127 is used
+###/doc
+function out:fail {
+    local ERCODE=127
+    local numpat='^[0-9]+$'
+
+    if [[ "$1" =~ $numpat ]]; then
+        ERCODE="$1"; shift || :
+    fi
+
+    echo "${CBRED}ERROR FAIL: $CRED$*$CDEF" 1>&2
+    exit $ERCODE
+}
+
+### out:error MESSAGE Usage:bbuild
+# print a red error message to stderr
+#
+# unlike out:fail, does not cause script exit
+###/doc
+function out:error {
+    echo "${CBRED}ERROR: ${CRED}$*$CDEF" 1>&2
+}
+
+gits:common:fetch-status() {
+    git fetch
+    git status
+}
+
+gits:local-help() {
+    local section="$1"; shift
+
+    if [[ -z "$*" ]] || [[ "$*" =~ --help ]]; then
+        autohelp:print "help-$section"
+        exit 0
+    fi
+}
+
+### diff FILE ... Usage:help-diff
+# Display diff of each file
+###/doc
+
+gits:check-commit() {
+    local x
+    for x in "$@"; do
+        if [[ "$x" =~ ^-mm?$ ]]; then
+            return 1
+        fi
+    done
+
+    return 0
+}
+
+gits:diff() {
+    gits:check-commit "$@" || {
+        gits:commit "$@"
+        return
+    }
+    echo "$*"
+
+    gits:local-help diff "$@"
+
+    local item
+
+    for item in "$@"; do
+        git diff --color HEAD -- "$item" | less -R
+    done
+}
+### Commit -m[m] [MESSAGE] Usage:commit
+#
+# After a series of items, if -m or -mm are found, performs an add + commit
+#
+# -m adds a new commit
+# -mm amends the last commit
+#
+# if no MESSAGE is suppplied, an editor session is started
+#
+###/doc
+
+gits:commit() {
+    local files item arguments
+    files=()
+    arguments=()
+    item="$1"
+
+    while [[ ! "$item" =~ ^-mm?$ ]]; do
+        files+=("$item")
+        shift
+        item="$1"
+    done
+    shift
+
+    if [[ "$item" = -mm ]]; then
+        arguments+=(--amend)
+    fi
+
+    if [[ -n "$*" ]]; then
+        arguments+=(-m "$*")
+    fi
+
+    git add "${files[@]}"
+    git commit "${arguments[@]}"
+}
+
+gits:helpcheck() {
+    [[ -n "$*" ]] || {
+        autohelp:print help
+        exit 0
+    }
+}
+
+gits:main() {
+    gits:helpcheck "$@"
+
+    local action
+
+    action="$1"; shift
+
+    case "$action" in
+    fs)
+        gits:common:fetch-status
+        ;;
+    *)
+        gits:diff "$action" "$@"
+        ;;
+    esac
+}
+
+gits:main "$@"
