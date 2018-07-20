@@ -2,6 +2,10 @@
 
 A utility to help with long-winded git commands.
 
+A clean-slate implementation after re-thinking what [`git-newbie`](https://github.com/taikedz/git-newbie) was trying to do.
+
+Git has quite a few long-winded commands that are frequently useful, and some common activities can be sped-up a little.
+
 ## Features
 
 Find out your current status
