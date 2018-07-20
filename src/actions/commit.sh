@@ -35,8 +35,11 @@ gits:commit() {
         arguments+=(-m "$*")
     fi
 
-    git add "${files[@]}"
-    git commit "${arguments[@]}"
+    if [[ -n "${files[*]:-}" ]]; then
+        git add "${files[@]}"
+    fi
+
+    git commit "${arguments[@]+${arguments[@]}}"
 }
 
 gits:commit:check_master() {

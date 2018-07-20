@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -euo pipefail
+
 
 ### Git Shortcuts Usage:help
 #
@@ -399,7 +401,7 @@ function out:error {
 }
 
 gits:common:fetch-status() {
-    git fetch
+    git fetch --all
     git status
 }
 
@@ -575,6 +577,30 @@ gits:prefs:filepath() {
 gits:prefs:advise() {
     out:info "Set '$1 = $2' in .git-shortcuts to make this decision permanent."
 }
+gits:store:create-get-file() {
+    local filepath
+    filepath="$(gits:store:get-file "$1")"
+    touch "$filepath" || out:fail "Could not create '$storefile'"
+    echo "$filepath"
+}
+
+gits:store:get-file() {
+    local storefile fsubdir fname
+    fsubdir="$(dirname "$1")" || out:fail "No file specified"
+    [[ "$fsubdir" != . ]] || fsubdir=""
+
+    fname="$(basename "$1")"
+    storefile="$(gits:store:get-dir "$fsubdir")/$fname"
+
+    echo "$storefile"
+}
+
+gits:store:get-dir() {
+    local storedir
+    storedir="$HOME/.config/git-shortcuts/${1:-}"
+    mkdir -p "$storedir"
+    echo "$storedir"
+}
 
 ### diff FILE ... Usage:help-diff
 # Display diff of each file
@@ -596,6 +622,8 @@ gits:diff() {
         gits:commit "$@"
         return
     }
+
+    echo "Diffs for: $action $*"
 
     gits:local-help-noempty diff "$@"
 
@@ -766,8 +794,11 @@ gits:commit() {
         arguments+=(-m "$*")
     fi
 
-    git add "${files[@]}"
-    git commit "${arguments[@]}"
+    if [[ -n "${files[*]:-}" ]]; then
+        git add "${files[@]}"
+    fi
+
+    git commit "${arguments[@]+${arguments[@]}}"
 }
 
 gits:commit:check_master() {
@@ -805,20 +836,145 @@ gits:log() {
     gits:local-help log "$@"
     local options=(--color --decorate=short)
 
-    if [[ "$1" = files ]]; then
+    if [[ "${1:-}" = files ]]; then
         options+=(--name-only)
         shift
-    elif [[ "$1" = graph ]]; then
+    elif [[ "${1:-}" = graph ]]; then
         options+=(--graph --all)
         shift
 
-        if [[ "$1" = short ]]; then
+        if [[ "${1:-}" = short ]]; then
             options+=(--oneline)
             shift
         fi
     fi
 
     git log "${options[@]}" "$@"
+}
+##bash-libs: varify.sh @ 266ad599 (after 1.1.4)
+
+### Varify Usage:bbuild
+# Make a string into a valid variable name or file name
+#
+# Collapses any string of invalid characters into a single underscore
+#
+# For example
+#
+# 	varify:var "http://example.com"
+#
+# returns
+#
+# 	http_example.com
+#
+###/doc
+
+### varify:var Usage:bbuild
+#
+# Valid characters for varify:var are:
+#
+# * a-z
+# * A-Z
+# * 0-9
+# * underscore ("_")
+###/doc
+function varify:var {
+    echo "$*" | sed -r 's/[^a-zA-Z0-9_]/_/g'
+}
+
+### varify:fil Usage:bbuild
+#
+# Valid characters for varify:fil are:
+#
+# * a-z
+# * A-Z
+# * 0-9
+# * underscore ("_")
+# * dash ("-")
+# * period (".")
+#
+# Can be used to produce filenames.
+#
+###/doc
+function varify:fil {
+    echo "$*" | sed -r 's/[^a-zA-Z0-9_.-]/_/g'
+}
+
+gits:profiles:_dispatch() {
+    local action
+    action="${1:-}" ; shift || :
+    case "$action" in
+    get|delete|list|apply)
+        gits:profiles:"$action" "$@"
+        ;;
+    *)
+        echo "Current config:"
+        git config user.name
+        git config user.email
+        ;;
+    esac
+}
+
+gits:profiles:get() {
+    local profiled profilename
+    profilename="$(varify:fil "${1:-}")"; shift || out:fail "No profile name specified"
+    profilef="$(gits:store:get-file profiles/$profilename.txt)"
+
+    [[ -f "$profilef" ]] || out:fail "No such profile '$profilename'"
+
+    gits:profiles:display "$profilef"
+}
+
+gits:profiles:delete() {
+    local profiled profilename
+    profilename="$(varify:fil "${1:-}")"; shift || out:fail "No profile name specified"
+    profilef="$(gits:store:get-file profiles/$profilename.txt)"
+
+    [[ -f "$profilef" ]] || out:fail "No such profile '$profilename'"
+
+    askuser:confirm "Delete '$profilename'?" || return
+    rm "$profilef"
+}
+
+gits:profiles:display() {
+    sed -r 's/^/\t/' "$1"
+}
+
+gits:profiles:apply() {
+    local profiled profilename uname umail
+    profilename="$(varify:fil "${1:-}")"; shift || out:fail "No profile name specified"
+    profilef="$(gits:store:get-file profiles/$profilename.txt)"
+
+    [[ -f "$profilef" ]] || out:fail "No such profile '$profilename'"
+
+    uname="$(readkv:require Name "$profilef")" #|| out:fail "Name could not be read"
+    umail="$(readkv:require Mail "$profilef")" #|| out:fail "Mail could not be read"
+
+    git config user.name "$uname"
+    git config user.email "$umail"
+}
+
+gits:profiles:put() {
+    local profiled profilename username useremail
+    profilename="$(varify:fil "${1:-}")"; shift || out:fail "No profile name specified"
+    profilef="$(gits:store:create-get-file profiles/$profilename.txt)"
+
+    username="${1:-}"; shift || out:fail "No user name specified"
+    useremail="${1:-}"; shift || out:fail "No user email specified"
+    
+    echo -e "Name=$username\nMail=$useremail" > "$profilef"
+}
+
+gits:profiles:list() {
+    local profiled pfile sname
+    profiled="$(gits:store:get-dir profiles)"
+
+    for pfile in "$profiled/"*.txt ; do
+        sname="${pfile##*/}"
+        sname="${sname%.*}"
+
+        echo "$sname"
+        gits:profiles:display "$pfile"
+    done
 }
 
 gits:main() {
@@ -828,7 +984,7 @@ gits:main() {
     action="${1:-}"; shift || :
 
     [[ -n "$action" ]] || {
-        git status
+        gits:common:fetch-status
         exit
     }
 
@@ -844,6 +1000,9 @@ gits:main() {
         ;;
     log)
         gits:log "$@"
+        ;;
+    profile)
+        gits:profiles:_dispatch "$@"
         ;;
     *)
         gits:diff "$action" "$@"

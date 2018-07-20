@@ -8,14 +8,14 @@ gits:log() {
     gits:local-help log "$@"
     local options=(--color --decorate=short)
 
-    if [[ "$1" = files ]]; then
+    if [[ "${1:-}" = files ]]; then
         options+=(--name-only)
         shift
-    elif [[ "$1" = graph ]]; then
+    elif [[ "${1:-}" = graph ]]; then
         options+=(--graph --all)
         shift
 
-        if [[ "$1" = short ]]; then
+        if [[ "${1:-}" = short ]]; then
             options+=(--oneline)
             shift
         fi

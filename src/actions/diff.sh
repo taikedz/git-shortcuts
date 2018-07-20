@@ -19,6 +19,8 @@ gits:diff() {
         return
     }
 
+    echo "Diffs for: $action $*"
+
     gits:local-help-noempty diff "$@"
 
     local item

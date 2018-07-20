@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -euo pipefail
+
 #%include help.sh
 
 #%include autohelp.sh out.sh
@@ -13,7 +15,7 @@ gits:main() {
     action="${1:-}"; shift || :
 
     [[ -n "$action" ]] || {
-        git status
+        gits:common:fetch-status
         exit
     }
 
@@ -29,6 +31,9 @@ gits:main() {
         ;;
     log)
         gits:log "$@"
+        ;;
+    profile)
+        gits:profiles:_dispatch "$@"
         ;;
     *)
         gits:diff "$action" "$@"

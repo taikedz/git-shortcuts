@@ -1,5 +1,5 @@
 gits:common:fetch-status() {
-    git fetch
+    git fetch --all
     git status
 }
 
