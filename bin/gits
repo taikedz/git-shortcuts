@@ -75,7 +75,7 @@
 #
 ###/doc
 
-##bash-libs: autohelp.sh @ e4c5a615 (1.1)
+##bash-libs: autohelp.sh @ 266ad599 (after 1.1.4)
 
 ### autohelp:print [ SECTION [FILE] ] Usage:bbuild
 # Write your help as documentation comments in your script
@@ -186,9 +186,9 @@ autohelp:check() {
         exit 0
     fi
 }
-##bash-libs: out.sh @ e4c5a615 (1.1)
+##bash-libs: out.sh @ 266ad599 (after 1.1.4)
 
-##bash-libs: colours.sh @ e4c5a615 (1.1)
+##bash-libs: colours.sh @ 266ad599 (after 1.1.4)
 
 ### Colours for bash Usage:bbuild
 # A series of colour flags for use in outputs.
@@ -218,7 +218,7 @@ autohelp:check() {
 #
 ###/doc
 
-##bash-libs: tty.sh @ e4c5a615 (1.1)
+##bash-libs: tty.sh @ 266ad599 (after 1.1.4)
 
 tty:is_ssh() {
     [[ -n "$SSH_TTY" ]] || [[ -n "$SSH_CLIENT" ]] || [[ "$SSH_CONNECTION" ]]
@@ -420,6 +420,161 @@ gits:local-help-noempty() {
 
     gits:local-help "$@"
 }
+##bash-libs: readkv.sh @ 266ad599 (after 1.1.4)
+
+### Key Value Pair Reader Usage:bbuild
+#
+# Read a value given the key, from a specified file
+#
+###/doc
+
+### readkv KEY FILE [DEFAULT] Usage:bbuild
+#
+# The KEY is the key in the file. A key is identified as starting at the beginning of a line, and ending at the first '=' character
+#
+# The value starts immediately after the first '=' character.
+#
+# If no value is found, the DEFAULT value is returned, or an empty string
+#
+###/doc
+
+function readkv {
+    local thedefault thekey thefile
+    thekey="$1" ; shift
+    thefile="$1"; shift
+
+    if [[ -n "${1:-}" ]]; then
+        thedefault="$1"; shift || :
+    fi
+
+    local res="$(readkv:meaningful_data "$thefile"|egrep "^$thekey"'\s*='|sed -r "s/^$thekey"'\s*=\s*//')"
+    if [[ -z "$res" ]]; then
+        echo "${thedefault:-}"
+    else
+        echo "$res"
+    fi
+}
+
+### readkv:require KEY FILE Usage:bbuild
+#
+# Like readkv, but causes a failure if the file does not exist.
+#
+###/doc
+
+function readkv:require {
+    if [[ -z "${2:-}" ]]; then
+        out:fail "No file specified to read [$*]"
+    fi
+
+    if [[ ! -f "$2" ]] ; then
+        out:fail "No such file $2 !"
+    fi
+
+    if ! head -n 1 "$2" > /dev/null; then
+        out:fail "Could not read $2"
+    fi
+    readkv "$@"
+}
+
+### readkv:moeaningful_data FILE Usage:bbuild
+# Dump the file contents, stripping meaningless data (empty lines and comment lines)
+###/doc
+readkv:meaningful_data() {
+    grep -v -P '^\s*(#.*)?$' "$1"
+}
+##bash-libs: ensureline.sh @ 266ad599 (after 1.1.4)
+
+### ensureline Usage:bbuild
+#
+# Utility for manipulating config files (and other files where all similar lines need to match).
+#
+#    ensureline FILE PATTERN LINEDATA
+#
+# Ensure that **every** line in FILE matched by PATTERN becomes LINEDATA
+#
+# If no such line is found, LINEDATA is appended to the end of the file.
+#
+# For example
+#
+# 	ensureline /etc/ssh/sshd_config '#?PasswordAuthentication.*' "PasswordAuthentication no"
+#
+# Ensure that the PasswordAuthentication line, whether commented out or not,
+# becomes an uncomented "PasswordAuthentication no", or add it to the end of the file.
+#
+# The match applies to the full line; the pattern '#?PasswordAuth' on its own would not match, due to the missing characters.
+#
+###/doc
+
+function ensureline {
+    local file="$1"; shift || :
+    local pattern="$1"; shift || :
+
+    if grep -P "^$pattern$" "$file" -q ; then
+        ensureline:matches "$file" "$pattern" "$@"
+    else
+        ensureline:add "$file" "$pattern" "$@"
+    fi
+}
+
+# The following functions are internal, and should not be used.
+# Use the main `ensureline` instead
+
+function ensureline:matches {
+    local FILE="$1"; shift || :
+    local PATTERN="$1"; shift || :
+    local LINEDATA="$1"; shift || :
+
+    #TODO - add support to specify a start line, and a range?
+
+    sed -r "s^$PATTERN$$LINEDATA" -i "$FILE"
+}
+
+function ensureline:add {
+    local FILE="$1"; shift || :
+    local PATTERN="$1"; shift || :
+    local LINEDATA="$1"; shift || :
+
+    echo "$LINEDATA" >> "$FILE"
+}
+
+gits:prefs:get() {
+    local prefsfile setting
+    setting="${1:-}" ; shift || out:fail "No setting provided"
+    prefsfile="$(gits:prefs:filepath)"
+
+    if [[ -f "$prefsfile" ]]; then
+        readkv "$setting" "$prefsfile" "$*"
+    else
+        [[ -z "$*" ]] || echo "$*"
+    fi
+}
+
+gits:prefs:put() {
+    local prefsfile setting value
+    setting="${1:-}" ; shift || out:fail "No setting provided"
+    value="${1:-}"; shift || out:fail "No value provided"
+    prefsfile="$(gits:prefs:filepath)"
+
+    [[ -f "$prefsfile" ]] || touch "$prefsfile"
+
+    ensureline "$prefsfile" "$setting\s*=.*" "$setting = $value"
+}
+
+gits:prefs:filepath() {
+    local searchdir
+    searchdir="$PWD"
+
+    while [[ ! -d "$searchdir/.git" ]]; do
+        searchdir="$(dirname "$searchdir")"
+        [[ "$searchdir" != / ]] || out:fail "'$PWD' is not in a git repository."
+    done
+
+    echo "$searchdir/.git-shortcuts"
+}
+
+gits:prefs:advise() {
+    out:info "Set '$1 = $2' in .git-shortcuts to make this decision permanent."
+}
 
 ### diff FILE ... Usage:help-diff
 # Display diff of each file
@@ -450,6 +605,132 @@ gits:diff() {
         git diff --color HEAD -- "$item" | less -R
     done
 }
+##bash-libs: askuser.sh @ 266ad599 (after 1.1.4)
+
+### askuser Usage:bbuild
+# Present the user with questions on stderr
+###/doc
+
+
+yespat='^(yes|YES|y|Y)$'
+numpat='^[0-9]+$'
+rangepat='[0-9]+,[0-9]+'
+listpat='^[0-9 ]+$'
+blankpat='^ *$'
+
+### askuser:confirm Usage:bbuild
+# Ask the user to confirm a closed question. Defaults to no
+#
+# returns 0 on successfully match 'y' or 'yes'
+# returns 1 otherwise
+###/doc
+function askuser:confirm {
+    read -p "$* [y/N] > " 1>&2
+    if [[ "$REPLY" =~ $yespat ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+### askuser:ask Usage:bbuild
+# Ask the user to provide some text
+#
+# Echoes out the entered text
+###/doc
+function askuser:ask {
+    read -p "$* : " 1>&2
+    echo "$REPLY"
+}
+
+### askuser:password Usage:bbuild
+# Ask the user to enter a password (does not echo what is typed)
+#
+# Echoes out the entered text
+###/doc
+function askuser:password {
+    read -s -p "$* : " 1>&2
+    echo "$REPLY"
+}
+
+### askuser:choose_multi Usage:bbuild
+# Allows the user to choose from multiple choices
+#
+# askuser:chose_multi MESG CHOICESTRING
+#
+#
+# MESG is a single string token that will be displayed as prompt
+#
+# CHOICESTRING is a comma-separated, or newline separated, or "\\n"-separated token string
+#
+# Equivalent strings include:
+#
+# * `"a\\nb\\nc"` - quoted and explicit newline escapes
+# * `"a,b,c"` - quoted and separated with commas
+# * `a , b , c` - not quoted, separated by commas
+# * `a`, `b` and `c` on their own lines
+#
+# User input:
+#
+# User can choose by selecting
+#
+# * a single item by number
+# * a range of numbers (4,7 for range 4 to 7)
+# * or a string that matches the pattern
+#
+# All option lines that match will be returned, one per line
+#
+# If the user selects nothing, then function returns 1 and an empty stdout
+###/doc
+function askuser:choose_multi {
+    local mesg=$1; shift || :
+    local choices=$(echo "$*"|sed -r 's/ *, */\n/g')
+
+    out:info "$mesg:" 
+    local choicelist="$(echo -e "$choices"|egrep '^' -n| sed 's/:/: /')"
+    echo "$choicelist" 1>&2
+    
+    local sel=$(askuser:ask "Choice")
+    if [[ "$sel" =~ $blankpat ]]; then
+        return 1
+
+    elif [[ "$sel" =~ $numpat ]] || [[ "$sel" =~ $rangepat ]]; then
+        echo -e "$choices" | sed -n "$sel p"
+    
+    elif [[ "$sel" =~ $listpat ]]; then
+        echo "$choicelist" | egrep "^${sel// /|}:" | sed -r 's/^[0-9]+: //'
+
+    else
+        echo -e "$choices"  |egrep "$(echo "$sel"|tr " " '|')"
+    fi
+    return 0
+}
+
+### askuser:choose Usage:bbuild
+# Ask the user to choose an item
+#
+# Like askuser:choose_multi, but will loop if the user selects more than one item
+#
+# If the user provides no entry, returns 1
+#
+# If the user chooses one item, that item is echoed to stdout
+###/doc
+function askuser:choose {
+    local mesg=$1; shift || :
+    while true; do
+        local thechoice="$(askuser:choose_multi "$mesg" "$*")"
+        local lines=$(echo -n "$thechoice" | grep '$' -c)
+        if [[ $lines = 1 ]]; then
+            echo "$thechoice"
+            return 0
+        elif [[ $lines = 0 ]]; then
+            return 1
+        else
+            out:warn "Too many results"
+        fi
+    done
+}
+
 ### Commit -m[m] [MESSAGE] Usage:help-commit
 #
 # After a series of items, if -m or -mm are found, performs an add + commit
@@ -462,6 +743,8 @@ gits:diff() {
 ###/doc
 
 gits:commit() {
+    gits:commit:check_master
+
     # need to add help that does not catch --help as part of message
     local files item arguments
     files=()
@@ -485,6 +768,32 @@ gits:commit() {
 
     git add "${files[@]}"
     git commit "${arguments[@]}"
+}
+
+gits:commit:check_master() {
+    local onbranch allowmaster setting
+    setting=allow_master_commits
+    onbranch="$(git status | head -n1 | grep -oP '(?<=On branch )[^\s]+')"
+    allowmaster="$(gits:prefs:get "$setting")"
+
+    if [[ "$onbranch" = master ]]; then
+        if [[ "$allowmaster" = false ]]; then
+            out:fail "You must not commit on master. Try moving your changes with 'git stash' and 'git checkout' before comitting again."
+
+        elif [[ "$allowmaster" = true ]]; then
+            return 0
+
+        else
+            if askuser:confirm "${CYEL}You are comitting on master - continue ?${CDEF}"; then
+                gits:prefs:advise "$setting" "true"
+                return 0
+            fi
+            gits:prefs:advise "$setting" "false"
+            out:fail "Abort"
+        fi
+    fi
+
+    return 0
 }
 ### log [file | graph [short]] [FILE ...] Usage:help-log
 #
