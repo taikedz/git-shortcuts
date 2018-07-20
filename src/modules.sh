@@ -11,3 +11,4 @@
 #%include actions/pull.sh
 #%include actions/gc.sh
 #%include actions/branch.sh
+#%include actions/clean.sh

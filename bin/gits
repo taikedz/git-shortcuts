@@ -1484,6 +1484,9 @@ gits:branch:_dispatch() {
         ;;
     esac
 }
+gits:clean() {
+    git clean -dfx
+}
 
 gits:main() {
 
@@ -1504,6 +1507,9 @@ gits:main() {
         ;;
     help)
         autohelp:print help
+        ;;
+    clean)
+        gits:clean "$@"
         ;;
     fs)
         gits:status:fetch "$@"

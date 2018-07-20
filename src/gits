@@ -28,6 +28,9 @@ gits:main() {
     help)
         autohelp:print help
         ;;
+    clean)
+        gits:clean "$@"
+        ;;
     fs)
         gits:status:fetch "$@"
         ;;
