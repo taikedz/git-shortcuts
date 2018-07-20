@@ -17,9 +17,9 @@
 #
 #See user profiles, configure user profile, configure local repo with profile
 #
-#    gits profile
-#    gits profile set PROFILE NAME EMAIL
-#    gits profile use PROFILE
+#    gits profile list
+#    gits profile put PROFILE NAME EMAIL
+#    gits profile apply PROFILE
 #
 #See log in color, with decorations;
 #  optionally list files;
@@ -28,6 +28,10 @@
 #
 #    gits log [files | graph [short]] [ARGS ...]
 #
+###/doc
+
+# Still to implement:
+
 #Modify remote - if the URL starts with '%' then it is a substitution
 # the first character after `%` defines the pattern separator
 #
@@ -70,5 +74,3 @@
 #    gits license add NAME LICENSEFILE
 #    gits license cat NAME
 #    gits license apply NAME SOURCEFILE
-#
-###/doc

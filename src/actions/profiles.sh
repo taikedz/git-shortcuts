@@ -2,17 +2,21 @@
 
 gits:profiles:_dispatch() {
     local action
-    action="${1:-}" ; shift || :
-    case "$action" in
-    get|delete|list|apply)
-        gits:profiles:"$action" "$@"
-        ;;
-    *)
+    if [[ -z "$*" ]]; then
         echo "Current config:"
-        git config user.name
-        git config user.email
-        ;;
-    esac
+        echo "  Name:  $(git config user.name)"
+        echo "  Email: $(git config user.email)"
+
+    else
+        action="${1:-}" ; shift || :
+        case "$action" in
+        put|get|delete|list|apply)
+            gits:profiles:"$action" "$@"
+            ;;
+        *)
+            out:fail "Unknown action"
+        esac
+    fi
 }
 
 gits:profiles:get() {

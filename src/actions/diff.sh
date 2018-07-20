@@ -19,13 +19,25 @@ gits:diff() {
         return
     }
 
-    echo "Diffs for: $action $*"
+    echo "Diffs for: $*"
 
     gits:local-help-noempty diff "$@"
 
     local item
 
     for item in "$@"; do
-        git diff --color HEAD -- "$item" | less -R
+        git diff --color HEAD -- "$item" |gits:diff:report-empty "$item"| less -R
     done
+}
+
+gits:diff:report-empty() {
+    local i=0
+    while read; do
+        echo "$REPLY"
+        ((i+=1))
+    done
+    if [[ "$i" = 0 ]]; then
+        echo "${CYEL}No changes on '$1'${CDEF}"
+        return 1
+    fi
 }

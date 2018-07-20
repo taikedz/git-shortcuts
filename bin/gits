@@ -21,9 +21,9 @@ set -euo pipefail
 #
 #See user profiles, configure user profile, configure local repo with profile
 #
-#    gits profile
-#    gits profile set PROFILE NAME EMAIL
-#    gits profile use PROFILE
+#    gits profile list
+#    gits profile put PROFILE NAME EMAIL
+#    gits profile apply PROFILE
 #
 #See log in color, with decorations;
 #  optionally list files;
@@ -32,6 +32,10 @@ set -euo pipefail
 #
 #    gits log [files | graph [short]] [ARGS ...]
 #
+###/doc
+
+# Still to implement:
+
 #Modify remote - if the URL starts with '%' then it is a substitution
 # the first character after `%` defines the pattern separator
 #
@@ -74,10 +78,8 @@ set -euo pipefail
 #    gits license add NAME LICENSEFILE
 #    gits license cat NAME
 #    gits license apply NAME SOURCEFILE
-#
-###/doc
 
-##bash-libs: autohelp.sh @ 266ad599 (after 1.1.4)
+##bash-libs: autohelp.sh @ e4c5a615 (1.1)
 
 ### autohelp:print [ SECTION [FILE] ] Usage:bbuild
 # Write your help as documentation comments in your script
@@ -188,9 +190,9 @@ autohelp:check() {
         exit 0
     fi
 }
-##bash-libs: out.sh @ 266ad599 (after 1.1.4)
+##bash-libs: out.sh @ e4c5a615 (1.1)
 
-##bash-libs: colours.sh @ 266ad599 (after 1.1.4)
+##bash-libs: colours.sh @ e4c5a615 (1.1)
 
 ### Colours for bash Usage:bbuild
 # A series of colour flags for use in outputs.
@@ -220,7 +222,7 @@ autohelp:check() {
 #
 ###/doc
 
-##bash-libs: tty.sh @ 266ad599 (after 1.1.4)
+##bash-libs: tty.sh @ e4c5a615 (1.1)
 
 tty:is_ssh() {
     [[ -n "$SSH_TTY" ]] || [[ -n "$SSH_CLIENT" ]] || [[ "$SSH_CONNECTION" ]]
@@ -422,7 +424,7 @@ gits:local-help-noempty() {
 
     gits:local-help "$@"
 }
-##bash-libs: readkv.sh @ 266ad599 (after 1.1.4)
+##bash-libs: readkv.sh @ e4c5a615 (1.1)
 
 ### Key Value Pair Reader Usage:bbuild
 #
@@ -441,17 +443,16 @@ gits:local-help-noempty() {
 ###/doc
 
 function readkv {
-    local thedefault thekey thefile
-    thekey="$1" ; shift
-    thefile="$1"; shift
-
-    if [[ -n "${1:-}" ]]; then
+    local thekey=$1 ; shift || :
+    local thefile=$1; shift || :
+    local thedefault=
+    if [[ -n "${1+x}" ]]; then
         thedefault="$1"; shift || :
     fi
 
-    local res="$(readkv:meaningful_data "$thefile"|egrep "^$thekey"'\s*='|sed -r "s/^$thekey"'\s*=\s*//')"
+    local res=$(egrep "^$thekey"'\s*=' "$thefile"|sed -r "s/^$thekey"'\s*=\s*//')
     if [[ -z "$res" ]]; then
-        echo "${thedefault:-}"
+        echo "$thedefault"
     else
         echo "$res"
     fi
@@ -464,7 +465,7 @@ function readkv {
 ###/doc
 
 function readkv:require {
-    if [[ -z "${2:-}" ]]; then
+    if [[ -z "${2+x}" ]]; then
         out:fail "No file specified to read [$*]"
     fi
 
@@ -477,14 +478,7 @@ function readkv:require {
     fi
     readkv "$@"
 }
-
-### readkv:moeaningful_data FILE Usage:bbuild
-# Dump the file contents, stripping meaningless data (empty lines and comment lines)
-###/doc
-readkv:meaningful_data() {
-    grep -v -P '^\s*(#.*)?$' "$1"
-}
-##bash-libs: ensureline.sh @ 266ad599 (after 1.1.4)
+##bash-libs: ensureline.sh @ e4c5a615 (1.1)
 
 ### ensureline Usage:bbuild
 #
@@ -623,17 +617,29 @@ gits:diff() {
         return
     }
 
-    echo "Diffs for: $action $*"
+    echo "Diffs for: $*"
 
     gits:local-help-noempty diff "$@"
 
     local item
 
     for item in "$@"; do
-        git diff --color HEAD -- "$item" | less -R
+        git diff --color HEAD -- "$item" |gits:diff:report-empty "$item"| less -R
     done
 }
-##bash-libs: askuser.sh @ 266ad599 (after 1.1.4)
+
+gits:diff:report-empty() {
+    local i=0
+    while read; do
+        echo "$REPLY"
+        ((i+=1))
+    done
+    if [[ "$i" = 0 ]]; then
+        echo "${CYEL}No changes on '$1'${CDEF}"
+        return 1
+    fi
+}
+##bash-libs: askuser.sh @ e4c5a615 (1.1)
 
 ### askuser Usage:bbuild
 # Present the user with questions on stderr
@@ -713,6 +719,7 @@ function askuser:password {
 function askuser:choose_multi {
     local mesg=$1; shift || :
     local choices=$(echo "$*"|sed -r 's/ *, */\n/g')
+    debug:print "CHOICES: $choices"
 
     out:info "$mesg:" 
     local choicelist="$(echo -e "$choices"|egrep '^' -n| sed 's/:/: /')"
@@ -723,12 +730,14 @@ function askuser:choose_multi {
         return 1
 
     elif [[ "$sel" =~ $numpat ]] || [[ "$sel" =~ $rangepat ]]; then
+        debug:print "Number choice [$sel]"
         echo -e "$choices" | sed -n "$sel p"
     
     elif [[ "$sel" =~ $listpat ]]; then
         echo "$choicelist" | egrep "^${sel// /|}:" | sed -r 's/^[0-9]+: //'
 
     else
+        debug:print "Pattern choice [$sel]"
         echo -e "$choices"  |egrep "$(echo "$sel"|tr " " '|')"
     fi
     return 0
@@ -851,7 +860,7 @@ gits:log() {
 
     git log "${options[@]}" "$@"
 }
-##bash-libs: varify.sh @ 266ad599 (after 1.1.4)
+##bash-libs: varify.sh @ e4c5a615 (1.1)
 
 ### Varify Usage:bbuild
 # Make a string into a valid variable name or file name
@@ -901,17 +910,21 @@ function varify:fil {
 
 gits:profiles:_dispatch() {
     local action
-    action="${1:-}" ; shift || :
-    case "$action" in
-    get|delete|list|apply)
-        gits:profiles:"$action" "$@"
-        ;;
-    *)
+    if [[ -z "$*" ]]; then
         echo "Current config:"
         git config user.name
         git config user.email
-        ;;
-    esac
+
+    else
+        action="${1:-}" ; shift || :
+        case "$action" in
+        put|get|delete|list|apply)
+            gits:profiles:"$action" "$@"
+            ;;
+        *)
+            out:fail "Unknown action"
+        esac
+    fi
 }
 
 gits:profiles:get() {
