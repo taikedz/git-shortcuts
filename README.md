@@ -44,11 +44,19 @@ See the log in color, with decorations (if your system's default config doesn't 
             * Safe mode enabled set -euo pipefail
             * ...
 
+See the full log graph, in colour, with decorations, [optionally with short descriptions]
+
+    $ gits log graph [short]
+
+    # versus `git log --graph [--oneline] --all --decorate=short --color`
+
 Save and apply different profiles
 
+    # One-time setup
     $ gits profile put coder "Coder Name" "coder@site.net"
     $ gits profile apply coder
 
     # ---> sets git config user.name and user.email
+    # usable across projects
 
 ( and more to come ... )
