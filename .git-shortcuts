@@ -1,1 +1,1 @@
-allow_master_commits = true
+allow_master_commits = warn
