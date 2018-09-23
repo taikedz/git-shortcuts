@@ -79,7 +79,7 @@ set -euo pipefail
 #    gits license cat NAME
 #    gits license apply NAME SOURCEFILE
 
-##bash-libs: autohelp.sh @ e4c5a615 (1.1)
+##bash-libs: autohelp.sh @ 715e710d (after 1.1.4)
 
 ### autohelp:print [ SECTION [FILE] ] Usage:bbuild
 # Write your help as documentation comments in your script
@@ -190,9 +190,9 @@ autohelp:check() {
         exit 0
     fi
 }
-##bash-libs: out.sh @ e4c5a615 (1.1)
+##bash-libs: out.sh @ 715e710d (after 1.1.4)
 
-##bash-libs: colours.sh @ e4c5a615 (1.1)
+##bash-libs: colours.sh @ 715e710d (after 1.1.4)
 
 ### Colours for bash Usage:bbuild
 # A series of colour flags for use in outputs.
@@ -222,7 +222,7 @@ autohelp:check() {
 #
 ###/doc
 
-##bash-libs: tty.sh @ e4c5a615 (1.1)
+##bash-libs: tty.sh @ 715e710d (after 1.1.4)
 
 tty:is_ssh() {
     [[ -n "$SSH_TTY" ]] || [[ -n "$SSH_CLIENT" ]] || [[ "$SSH_CONNECTION" ]]
@@ -424,7 +424,24 @@ gits:local-help-noempty() {
 
     gits:local-help "$@"
 }
-##bash-libs: readkv.sh @ e4c5a615 (1.1)
+
+gits:current-branch() {
+    git branch | grep '^*' | cut -f 2 -d' '
+}
+
+gits:remote-exists() {
+    local remote_name target
+    target="$1"; shift
+
+    while read remote_name; do
+        if [[ "$remote_name" = "$target" ]]; then
+            return 0
+        fi
+    done < <(git remote)
+
+    return 1
+}
+##bash-libs: readkv.sh @ 715e710d (after 1.1.4)
 
 ### Key Value Pair Reader Usage:bbuild
 #
@@ -443,16 +460,17 @@ gits:local-help-noempty() {
 ###/doc
 
 function readkv {
-    local thekey=$1 ; shift || :
-    local thefile=$1; shift || :
-    local thedefault=
-    if [[ -n "${1+x}" ]]; then
+    local thedefault thekey thefile
+    thekey="$1" ; shift
+    thefile="$1"; shift
+
+    if [[ -n "${1:-}" ]]; then
         thedefault="$1"; shift || :
     fi
 
-    local res=$(egrep "^$thekey"'\s*=' "$thefile"|sed -r "s/^$thekey"'\s*=\s*//')
+    local res="$(readkv:meaningful_data "$thefile"|egrep "^$thekey"'\s*='|sed -r "s/^$thekey"'\s*=\s*//')"
     if [[ -z "$res" ]]; then
-        echo "$thedefault"
+        echo "${thedefault:-}"
     else
         echo "$res"
     fi
@@ -465,7 +483,7 @@ function readkv {
 ###/doc
 
 function readkv:require {
-    if [[ -z "${2+x}" ]]; then
+    if [[ -z "${2:-}" ]]; then
         out:fail "No file specified to read [$*]"
     fi
 
@@ -478,7 +496,14 @@ function readkv:require {
     fi
     readkv "$@"
 }
-##bash-libs: ensureline.sh @ e4c5a615 (1.1)
+
+### readkv:moeaningful_data FILE Usage:bbuild
+# Dump the file contents, stripping meaningless data (empty lines and comment lines)
+###/doc
+readkv:meaningful_data() {
+    grep -v -P '^\s*(#.*)?$' "$1"
+}
+##bash-libs: ensureline.sh @ 715e710d (after 1.1.4)
 
 ### ensureline Usage:bbuild
 #
@@ -639,7 +664,7 @@ gits:diff:report-empty() {
         return 1
     fi
 }
-##bash-libs: askuser.sh @ e4c5a615 (1.1)
+##bash-libs: askuser.sh @ 715e710d (after 1.1.4)
 
 ### askuser Usage:bbuild
 # Present the user with questions on stderr
@@ -719,7 +744,6 @@ function askuser:password {
 function askuser:choose_multi {
     local mesg=$1; shift || :
     local choices=$(echo "$*"|sed -r 's/ *, */\n/g')
-    debug:print "CHOICES: $choices"
 
     out:info "$mesg:" 
     local choicelist="$(echo -e "$choices"|egrep '^' -n| sed 's/:/: /')"
@@ -730,14 +754,12 @@ function askuser:choose_multi {
         return 1
 
     elif [[ "$sel" =~ $numpat ]] || [[ "$sel" =~ $rangepat ]]; then
-        debug:print "Number choice [$sel]"
         echo -e "$choices" | sed -n "$sel p"
     
     elif [[ "$sel" =~ $listpat ]]; then
         echo "$choicelist" | egrep "^${sel// /|}:" | sed -r 's/^[0-9]+: //'
 
     else
-        debug:print "Pattern choice [$sel]"
         echo -e "$choices"  |egrep "$(echo "$sel"|tr " " '|')"
     fi
     return 0
@@ -860,7 +882,7 @@ gits:log() {
 
     git log "${options[@]}" "$@"
 }
-##bash-libs: varify.sh @ e4c5a615 (1.1)
+##bash-libs: varify.sh @ 715e710d (after 1.1.4)
 
 ### Varify Usage:bbuild
 # Make a string into a valid variable name or file name
@@ -989,6 +1011,30 @@ gits:profiles:list() {
         gits:profiles:display "$pfile"
     done
 }
+gits:push() {
+    local remote branch localbranch gitpush
+    gitpush=(git push --set-upstream)
+    localbranch="$(gits:current-branch)"
+
+    [[ -n "$localbranch" ]] || out:fail "Could not get local branch !"
+
+    if [[ -z "$*" ]]; then
+        "${gitpush[@]}" origin "$localbranch"
+        return
+    fi
+
+    remote="$1"; shift
+
+    gits:remote-exists "$remote" || out:fail "No such remote '$remote'"
+
+    if [[ -z "$*" ]]; then
+        "${gitpush[@]}" "$remote" "$localbranch"
+    else
+        branch="$1"; shift
+
+        "${gitpush[@]}" "$remote" "$branch"
+    fi
+}
 
 gits:main() {
 
@@ -1016,6 +1062,9 @@ gits:main() {
         ;;
     profile)
         gits:profiles:_dispatch "$@"
+        ;;
+    push)
+        gits:push "$@"
         ;;
     *)
         gits:diff "$action" "$@"

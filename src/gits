@@ -35,6 +35,9 @@ gits:main() {
     profile)
         gits:profiles:_dispatch "$@"
         ;;
+    push)
+        gits:push "$@"
+        ;;
     *)
         gits:diff "$action" "$@"
         ;;
