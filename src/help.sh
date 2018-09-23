@@ -15,12 +15,6 @@
 #
 #    gits FILES ... -m[m] [MESSAGE ...]
 #
-#See user profiles, configure user profile, configure local repo with profile
-#
-#    gits profile list
-#    gits profile put PROFILE NAME EMAIL
-#    gits profile apply PROFILE
-#
 #See log in color, with decorations;
 #  optionally list files;
 #  optionally use graph output, optionally with short messages;
@@ -28,10 +22,24 @@
 #
 #    gits log [files | graph [short]] [ARGS ...]
 #
+#Garbage collect commits and files that cannot be reached
+#
+#    gits gc
+#
+#Set the upstream remote for the current branch
+#
+#    gits push [REMOTE [BRANCH]]
+#
 ###/doc
 
 # Still to implement:
 
+#See user profiles, configure user profile, configure local repo with profile
+#
+#    gits profile list
+#    gits profile put PROFILE NAME EMAIL
+#    gits profile apply PROFILE
+#
 #Modify remote - if the URL starts with '%' then it is a substitution
 # the first character after `%` defines the pattern separator
 #

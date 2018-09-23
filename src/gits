@@ -38,6 +38,9 @@ gits:main() {
     push)
         gits:push "$@"
         ;;
+    gc)
+        gits:gc-full "$@"
+        ;;
     *)
         gits:diff "$action" "$@"
         ;;

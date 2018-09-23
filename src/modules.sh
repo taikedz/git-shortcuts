@@ -7,3 +7,4 @@
 #%include actions/log.sh
 #%include actions/profiles.sh
 #%include actions/push.sh
+#%include actions/gc.sh
