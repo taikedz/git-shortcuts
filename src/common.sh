@@ -20,3 +20,20 @@ gits:local-help-noempty() {
 
     gits:local-help "$@"
 }
+
+gits:current-branch() {
+    git branch | grep '^*' | cut -f 2 -d' '
+}
+
+gits:remote-exists() {
+    local remote_name target
+    target="$1"; shift
+
+    while read remote_name; do
+        if [[ "$remote_name" = "$target" ]]; then
+            return 0
+        fi
+    done < <(git remote)
+
+    return 1
+}
