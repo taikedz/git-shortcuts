@@ -87,7 +87,7 @@ set -euo pipefail
 #    gits license cat NAME
 #    gits license apply NAME SOURCEFILE
 
-##bash-libs: autohelp.sh @ 715e710d (after 1.1.4)
+##bash-libs: autohelp.sh @ f6496eca (1.1.4)
 
 ### autohelp:print [ SECTION [FILE] ] Usage:bbuild
 # Write your help as documentation comments in your script
@@ -198,9 +198,9 @@ autohelp:check() {
         exit 0
     fi
 }
-##bash-libs: out.sh @ 715e710d (after 1.1.4)
+##bash-libs: out.sh @ f6496eca (1.1.4)
 
-##bash-libs: colours.sh @ 715e710d (after 1.1.4)
+##bash-libs: colours.sh @ f6496eca (1.1.4)
 
 ### Colours for bash Usage:bbuild
 # A series of colour flags for use in outputs.
@@ -230,7 +230,7 @@ autohelp:check() {
 #
 ###/doc
 
-##bash-libs: tty.sh @ 715e710d (after 1.1.4)
+##bash-libs: tty.sh @ f6496eca (1.1.4)
 
 tty:is_ssh() {
     [[ -n "$SSH_TTY" ]] || [[ -n "$SSH_CLIENT" ]] || [[ "$SSH_CONNECTION" ]]
@@ -449,7 +449,7 @@ gits:remote-exists() {
 
     return 1
 }
-##bash-libs: readkv.sh @ 715e710d (after 1.1.4)
+##bash-libs: readkv.sh @ f6496eca (1.1.4)
 
 ### Key Value Pair Reader Usage:bbuild
 #
@@ -511,7 +511,7 @@ function readkv:require {
 readkv:meaningful_data() {
     grep -v -P '^\s*(#.*)?$' "$1"
 }
-##bash-libs: ensureline.sh @ 715e710d (after 1.1.4)
+##bash-libs: ensureline.sh @ f6496eca (1.1.4)
 
 ### ensureline Usage:bbuild
 #
@@ -672,7 +672,7 @@ gits:diff:report-empty() {
         return 1
     fi
 }
-##bash-libs: askuser.sh @ 715e710d (after 1.1.4)
+##bash-libs: askuser.sh @ f6496eca (1.1.4)
 
 ### askuser Usage:bbuild
 # Present the user with questions on stderr
@@ -890,7 +890,7 @@ gits:log() {
 
     git log "${options[@]}" "$@"
 }
-##bash-libs: varify.sh @ 715e710d (after 1.1.4)
+##bash-libs: varify.sh @ f6496eca (1.1.4)
 
 ### Varify Usage:bbuild
 # Make a string into a valid variable name or file name
@@ -1084,6 +1084,9 @@ gits:main() {
         ;;
     gc)
         gits:gc-full "$@"
+        ;;
+    --help)
+        autohelp:print
         ;;
     *)
         gits:diff "$action" "$@"
