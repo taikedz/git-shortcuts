@@ -41,8 +41,12 @@ gits:main() {
     gc)
         gits:gc-full "$@"
         ;;
+    branch)
+        gits:branch:_dispatch "$@"
+        ;;
     --help)
         autohelp:print
+        exit 0
         ;;
     *)
         gits:diff "$action" "$@"

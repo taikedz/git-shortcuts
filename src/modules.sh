@@ -8,3 +8,4 @@
 #%include actions/profiles.sh
 #%include actions/push.sh
 #%include actions/gc.sh
+#%include actions/branch.sh

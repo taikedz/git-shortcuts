@@ -5,7 +5,7 @@ if [[ "$UID" = 0 ]]; then
 	bins=/usr/local/bin
 fi
 
-mkdir -p "$bins"
+[[ -d "$bins" ]] || mkdir -p "$bins"
 
 cp bin/gits "$bins"
 
