@@ -38,6 +38,9 @@ gits:main() {
     push)
         gits:push "$@"
         ;;
+    pull)
+        gits:pull:_dispatch "$@"
+        ;;
     gc)
         gits:gc-full "$@"
         ;;
