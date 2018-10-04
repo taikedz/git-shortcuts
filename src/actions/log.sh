@@ -1,12 +1,19 @@
-### log [graph [long]] [OPTIONS] [FILES ...] Usage:help-log
+### log [OPTIONS] [FILES ...] Usage:help-log
 #
-# Show logs , optionally in graph format with single lines, or long if specified.
+# Show short log, in colour.
 #
-# Options can be any git-log options, or one of the following:
+# The following option shortcuts are specific to gits:
 #
-# --files
-#
+# files|-f
 #   Show files. Equivalent to standard option --name-only
+#
+# graph|-g
+#   Show as graph, on a single line unless "long" is specified
+#
+# long|-l
+#   Show long format instead of oneline format
+#
+# The [FILES ...] are optional, and can also be any other git-log standard options
 #
 ###/doc
 
@@ -15,25 +22,26 @@ gits:log() {
     gits:local-help log "$@"
 
     local options=(--color --decorate=short)
+    local add_short=true
 
-    if [[ "${1:-}" = files ]]; then
-        options+=(--name-only)
-        shift
-    elif [[ "${1:-}" = graph ]]; then
+    if [[ "${1:-}" = graph ]] || [[ "${1:-}" = -g ]]; then
         options+=(--graph --all)
         shift
 
-        if [[ "${1:-}" != long ]]; then
-            options+=(--oneline)
-        else
-            shift
-        fi
     fi
 
     for arg in "$@"; do
     case "$arg" in
-    --files)
+    files|-f)
         options+=(--name-only)
+        shift
+        ;;
+    graph|-g)
+        options+=(--graph --all)
+        shift
+        ;;
+    long|-l)
+        add_short=false
         shift
         ;;
     *)
@@ -41,6 +49,10 @@ gits:log() {
         ;;
     esac
     done
+
+    if [[ "$add_short" = true ]]; then
+        options+=(--oneline)
+    fi
 
     gits:run log "${options[@]}" "$@"
 }

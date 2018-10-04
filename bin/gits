@@ -5,76 +5,76 @@ set -euo pipefail
 
 ### Git Shortcuts Usage:help
 #
-#Tool to provide shortcut commands to common onerous git operations.
+# Tool to provide shortcut commands to common onerous git operations.
 #
-#The tool displays the command, and executes them. To not execute the command, set `GITS_no_execute=true` in your environment
+# The tool displays the command, and executes them. To not execute the command, set `GITS_no_execute=true` in your environment
 #
-#Fetch and status
+# Fetch and status
 #
-#    gits fs
+#   gits fs
 #
-#Individual diffs in less, independent of whether staged or not
+# Individual diffs in less, independent of whether staged or not
 #
-#    gits FILES ...
+#   gits FILES ...
 #
-#Add files, and commit - if no actual message is specified, an editing session is opened;
+# Add files, and commit - if no actual message is specified, an editing session is opened;
 #  with the -m  option, use a regular commit;
 #  with the -mm option, use an ammend commit
 #
-#    gits FILES ... -m[m] [MESSAGE ...]
+#   gits FILES ... -m[m] [MESSAGE ...]
 #
-#See log in color, with decorations;
+# See log in color, with decorations;
 #  optionally list files;
 #  optionally use graph output, optionally with short messages;
 #  any extra arguments for standard `git log`
 #
-#    gits log [files | graph [short]] [ARGS ...]
+#   gits log [files | graph [short]] [ARGS ...]
 #
-#Garbage collect commits and files that cannot be reached
+# Garbage collect commits and files that cannot be reached
 #
-#    gits gc
+#   gits gc
 #
-#Set the upstream remote for the current branch
+# Set the upstream remote for the current branch
 #
-#    gits push [REMOTE [BRANCH]]
+#   gits push [REMOTE [BRANCH]]
 #
 ###/doc
 
 # Still to implement:
 
-#See user profiles, configure user profile, configure local repo with profile
+# See user profiles, configure user profile, configure local repo with profile
 #
-#    gits profile list
-#    gits profile put PROFILE NAME EMAIL
-#    gits profile apply PROFILE
+#   gits profile list
+#   gits profile put PROFILE NAME EMAIL
+#   gits profile apply PROFILE
 #
-#Modify remote - if the URL starts with '%' then it is a substitution
+# Modify remote - if the URL starts with '%' then it is a substitution
 # the first character after `%` defines the pattern separator
 #
 # e.g. gits remote origin %/github.com/user@github.com/
 # e.g. gits remote origin %|https://|ssh://git@|
 #
-#    gits remote REMOTE { URL | SUBSTITUTION }
+#   gits remote REMOTE { URL | SUBSTITUTION }
 #
-#Create github repo
+# Create github repo
 #
-#    gits github create USER/PROJECT DESCRIPTION
+#   gits github create USER/PROJECT DESCRIPTION
 #
-#Delete github branch or tag
+# Delete github branch or tag
 #
-#    gits github delete { tag | branch } REFNAME
+#   gits github delete { tag | branch } REFNAME
 #
-#Clean the repository
+# Clean the repository
 #
-#    gits clean
+#   gits clean
 #
-#Create mailing patch, apply mailing patch
+# Create mailing patch, apply mailing patch
 # specify file `-` to use stout/stdin
 #
-#    gits patch get FROM_REF TO_REF [FILE]
-#    gits patch apply [FILE]
+#   gits patch get FROM_REF TO_REF [FILE]
+#   gits patch apply [FILE]
 #
-#List license names,
+# List license names,
 #  add a license file to license library,
 #  dump license text,
 #  apply license text to top of file after first line
@@ -86,13 +86,13 @@ set -euo pipefail
 # e.g. gits license cat gplv3-c > src/new-file.c
 # e.g. gits license apply glv3-sh src/existing-file.c
 #
-#    gits license
-#    gits license add NAME LICENSEFILE
-#    gits license cat NAME
-#    gits license apply NAME SOURCEFILE
+#   gits license
+#   gits license add NAME LICENSEFILE
+#   gits license cat NAME
+#   gits license apply NAME SOURCEFILE
 
 
-##bash-libs: autohelp.sh @ 1fd185cf (after 1.1.6)
+##bash-libs: autohelp.sh @ 646701a1 (after 1.1.6)
 
 ### Autohelp Usage:bbuild
 #
@@ -273,30 +273,47 @@ autohelp:check_section() {
         fi
     done
 }
-##bash-libs: out.sh @ 1fd185cf (after 1.1.6)
+##bash-libs: out.sh @ 646701a1 (after 1.1.6)
 
-##bash-libs: colours.sh @ 1fd185cf (after 1.1.6)
+##bash-libs: colours.sh @ 646701a1 (after 1.1.6)
 
-### Colours for bash Usage:bbuild
-# A series of colour flags for use in outputs.
+### Colours for terminal Usage:bbuild
+# A series of shorthand colour flags for use in outputs, and functions to set your own flags.
+#
+# Not all terminals support all colours or modifiers.
 #
 # Example:
 # 	
-# 	echo -e "${CRED}Some red text ${CBBLU} some blue text $CDEF some text in the terminal's default colour")
+# 	echo "${CRED}Some red text ${CBBLU} some blue text. $CDEF Some text in the terminal's default colour")
 #
-# Requires processing of escape characters.
+# Preconfigured colours available:
 #
-# Colours available:
+# CRED, CBRED, HLRED -- red, bright red, highlight red
+# CGRN, CBGRN, HLGRN -- green, bright green, highlight green
+# CYEL, CBYEL, HLYEL -- yellow, bright yellow, highlight yellow
+# CBLU, CBBLU, HLBLU -- blue, bright blue, highlight blue
+# CPUR, CBPUR, HLPUR -- purple, bright purple, highlight purple
+# CTEA, CBTEA, HLTEA -- teal, bright teal, highlight teal
+# CBLA, CBBLA, HLBLA -- black, bright red, highlight red
+# CWHI, CBWHI, HLWHI -- white, bright red, highlight red
 #
-# CRED, CBRED, HLRED -- red, bold red, highlight red
-# CGRN, CBGRN, HLGRN -- green, bold green, highlight green
-# CYEL, CBYEL, HLYEL -- yellow, bold yellow, highlight yellow
-# CBLU, CBBLU, HLBLU -- blue, bold blue, highlight blue
-# CPUR, CBPUR, HLPUR -- purple, bold purple, highlight purple
-# CTEA, CBTEA, HLTEA -- teal, bold teal, highlight teal
+# Modifiers available:
 #
-# CDEF -- switches to the terminal default
-# CUNL -- add underline
+# CBON - activate bright
+# CDON - activate dim
+# ULON - activate underline
+# RVON - activate reverse (switch foreground and background)
+# SKON - activate strikethrough
+# 
+# Resets available:
+#
+# CNORM -- turn off bright or dim, without affecting other modifiers
+# ULOFF -- turn off highlighting
+# RVOFF -- turn off inverse
+# SKOFF -- turn off strikethrough
+# HLOFF -- turn off highlight
+#
+# CDEF -- turn off all colours and modifiers(switches to the terminal default)
 #
 # Note that highlight and underline must be applied or re-applied after specifying a colour.
 #
@@ -305,7 +322,7 @@ autohelp:check_section() {
 #
 ###/doc
 
-##bash-libs: tty.sh @ 1fd185cf (after 1.1.6)
+##bash-libs: tty.sh @ 646701a1 (after 1.1.6)
 
 tty:is_ssh() {
     [[ -n "$SSH_TTY" ]] || [[ -n "$SSH_CLIENT" ]] || [[ "$SSH_CONNECTION" ]]
@@ -315,10 +332,18 @@ tty:is_pipe() {
     [[ ! -t 1 ]]
 }
 
-### colours:check ARGS Usage:bbuild
+### colours:check ARGS ... Usage:bbuild
 #
 # Check the args to see if there's a `--color=always` or `--color=never`
 #   and reload the colours appropriately
+#
+#   main() {
+#       colours:check "$@"
+#
+#       echo "${CGRN}Green only in tty or if --colours=always !${CDEF}"
+#   }
+#
+#   main "$@"
 #
 ###/doc
 colours:check() {
@@ -332,6 +357,74 @@ colours:check() {
     return 0
 }
 
+### colours:set CODE Usage:bbuild
+# Set an explicit colour code - e.g.
+#
+#   echo "$(colours:set "33;2")Dim yellow text${CDEF}"
+#
+# See SGR Colours definitions
+#   <https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters>
+###/doc
+colours:set() {
+    # We use `echo -e` here rather than directly embedding a binary character
+    if [[ "$COLOURS_ON" = false ]]; then
+        return 0
+    else
+        echo -e "\033[${1}m"
+    fi
+}
+
+colours:define() {
+
+    # Shorthand colours
+
+    export CBLA="$(colours:set "21;30")"
+    export CRED="$(colours:set "21;31")"
+    export CGRN="$(colours:set "21;32")"
+    export CYEL="$(colours:set "21;33")"
+    export CBLU="$(colours:set "21;34")"
+    export CPUR="$(colours:set "21;35")"
+    export CTEA="$(colours:set "21;36")"
+    export CWHI="$(colours:set "21;37")"
+
+    export CBBLA="$(colours:set "1;30")"
+    export CBRED="$(colours:set "1;31")"
+    export CBGRN="$(colours:set "1;32")"
+    export CBYEL="$(colours:set "1;33")"
+    export CBBLU="$(colours:set "1;34")"
+    export CBPUR="$(colours:set "1;35")"
+    export CBTEA="$(colours:set "1;36")"
+    export CBWHI="$(colours:set "1;37")"
+
+    export HLBLA="$(colours:set "40")"
+    export HLRED="$(colours:set "41")"
+    export HLGRN="$(colours:set "42")"
+    export HLYEL="$(colours:set "43")"
+    export HLBLU="$(colours:set "44")"
+    export HLPUR="$(colours:set "45")"
+    export HLTEA="$(colours:set "46")"
+    export HLWHI="$(colours:set "47")"
+
+    # Modifiers
+    
+    export CBON="$(colours:set "1")"
+    export CDON="$(colours:set "2")"
+    export ULON="$(colours:set "4")"
+    export RVON="$(colours:set "7")"
+    export SKON="$(colours:set "9")"
+
+    # Resets
+
+    export CBNRM="$(colours:set "22")"
+    export HLOFF="$(colours:set "49")"
+    export ULOFF="$(colours:set "24")"
+    export RVOFF="$(colours:set "27")"
+    export SKOFF="$(colours:set "29")"
+
+    export CDEF="$(colours:set "0")"
+
+}
+
 colours:auto() {
     if tty:is_pipe ; then
         COLOURS_ON=false
@@ -341,60 +434,6 @@ colours:auto() {
 
     colours:define
     return 0
-}
-
-colours:define() {
-    if [[ "$COLOURS_ON" = false ]]; then
-
-        export CRED=''
-        export CGRN=''
-        export CYEL=''
-        export CBLU=''
-        export CPUR=''
-        export CTEA=''
-
-        export CBRED=''
-        export CBGRN=''
-        export CBYEL=''
-        export CBBLU=''
-        export CBPUR=''
-        export CBTEA=''
-
-        export HLRED=''
-        export HLGRN=''
-        export HLYEL=''
-        export HLBLU=''
-        export HLPUR=''
-        export HLTEA=''
-
-        export CDEF=''
-
-    else
-
-        export CRED=$(echo -e "\033[0;31m")
-        export CGRN=$(echo -e "\033[0;32m")
-        export CYEL=$(echo -e "\033[0;33m")
-        export CBLU=$(echo -e "\033[0;34m")
-        export CPUR=$(echo -e "\033[0;35m")
-        export CTEA=$(echo -e "\033[0;36m")
-
-        export CBRED=$(echo -e "\033[1;31m")
-        export CBGRN=$(echo -e "\033[1;32m")
-        export CBYEL=$(echo -e "\033[1;33m")
-        export CBBLU=$(echo -e "\033[1;34m")
-        export CBPUR=$(echo -e "\033[1;35m")
-        export CBTEA=$(echo -e "\033[1;36m")
-
-        export HLRED=$(echo -e "\033[41m")
-        export HLGRN=$(echo -e "\033[42m")
-        export HLYEL=$(echo -e "\033[43m")
-        export HLBLU=$(echo -e "\033[44m")
-        export HLPUR=$(echo -e "\033[45m")
-        export HLTEA=$(echo -e "\033[46m")
-
-        export CDEF=$(echo -e "\033[0m")
-
-    fi
 }
 
 colours:auto
@@ -542,7 +581,7 @@ gits:run() {
         git "$@"
     fi
 }
-##bash-libs: readkv.sh @ 1fd185cf (after 1.1.6)
+##bash-libs: readkv.sh @ 646701a1 (after 1.1.6)
 
 ### Key Value Pair Reader Usage:bbuild
 #
@@ -604,7 +643,7 @@ function readkv:require {
 readkv:meaningful_data() {
     grep -v -P '^\s*(#.*)?$' "$1"
 }
-##bash-libs: ensureline.sh @ 1fd185cf (after 1.1.6)
+##bash-libs: ensureline.sh @ 646701a1 (after 1.1.6)
 
 ### ensureline Usage:bbuild
 #
@@ -811,7 +850,7 @@ gits:diff:report-empty() {
         return 1
     fi
 }
-##bash-libs: askuser.sh @ 1fd185cf (after 1.1.6)
+##bash-libs: askuser.sh @ 646701a1 (after 1.1.6)
 
 ### askuser Usage:bbuild
 # Present the user with questions on stderr
@@ -1012,15 +1051,22 @@ gits:commit:check_master() {
 
     return 0
 }
-### log [graph [long]] [OPTIONS] [FILES ...] Usage:help-log
+### log [OPTIONS] [FILES ...] Usage:help-log
 #
-# Show logs , optionally in graph format with single lines, or long if specified.
+# Show short log, in colour.
 #
-# Options can be any git-log options, or one of the following:
+# The following option shortcuts are specific to gits:
 #
-# --files
-#
+# files|-f
 #   Show files. Equivalent to standard option --name-only
+#
+# graph|-g
+#   Show as graph, on a single line unless "long" is specified
+#
+# long|-l
+#   Show long format instead of oneline format
+#
+# The [FILES ...] are optional, and can also be any other git-log standard options
 #
 ###/doc
 
@@ -1029,25 +1075,26 @@ gits:log() {
     gits:local-help log "$@"
 
     local options=(--color --decorate=short)
+    local add_short=true
 
-    if [[ "${1:-}" = files ]]; then
-        options+=(--name-only)
-        shift
-    elif [[ "${1:-}" = graph ]]; then
+    if [[ "${1:-}" = graph ]] || [[ "${1:-}" = -g ]]; then
         options+=(--graph --all)
         shift
 
-        if [[ "${1:-}" != long ]]; then
-            options+=(--oneline)
-        else
-            shift
-        fi
     fi
 
     for arg in "$@"; do
     case "$arg" in
-    --files)
+    files|-f)
         options+=(--name-only)
+        shift
+        ;;
+    graph|-g)
+        options+=(--graph --all)
+        shift
+        ;;
+    long|-l)
+        add_short=false
         shift
         ;;
     *)
@@ -1056,9 +1103,13 @@ gits:log() {
     esac
     done
 
+    if [[ "$add_short" = true ]]; then
+        options+=(--oneline)
+    fi
+
     gits:run log "${options[@]}" "$@"
 }
-##bash-libs: varify.sh @ 1fd185cf (after 1.1.6)
+##bash-libs: varify.sh @ 646701a1 (after 1.1.6)
 
 ### Varify Usage:bbuild
 # Make a string into a valid variable name or file name
@@ -1219,7 +1270,19 @@ gits:push() {
         gits:run "${pushargs[@]}" "$remote" "$branch"
     fi
 }
-### pull backtrack [N] Usage:help-pull
+### pull [backtrack [N]] Usage:help-pull
+#
+# gits pull
+# ---------
+#
+# With no options, performs a fetch and checks for fast-forwardability.
+#
+# If the remote branch is simply ahead, the local branch will be fast-forwarded.
+#
+# If the branches have diverged, no pull is performed and a warning is printed.
+#
+# gits pull backtrack [N]
+# -----------------------
 #
 # If your local and remote branches have diverged due to upstream having rebased, do a backtrack.
 #
@@ -1233,7 +1296,7 @@ gits:push() {
 #
 ###/doc
 
-##bash-libs: patterns.sh @ 1fd185cf (after 1.1.6)
+##bash-libs: patterns.sh @ 646701a1 (after 1.1.6)
 
 ### Useful patterns Usage:bbuild
 #
@@ -1263,6 +1326,11 @@ gits:pull:_dispatch() {
 
     local action="${1:-}" ; shift || :
 
+    if [[ -z "$action" ]]; then
+        gits:pull:checking
+        return
+    fi
+
     case "$action" in
     backtrack)
         gits:pull:backtrack "$@"
@@ -1271,6 +1339,21 @@ gits:pull:_dispatch() {
         out:fail "No subaction specified"
         ;;
     esac
+}
+
+gits:pull:checking() {
+    gits:run fetch --all
+    
+    if git status | grep -qP "^Your branch.+can be fast-forwarded" &&
+            git status -vqP "^Changes|^Untracked"; then
+
+        gits:run pull
+
+    else
+        git status
+        echo
+        out:fail "Unsure whether to pull yet."
+    fi
 }
 
 gits:pull:backtrack() {
@@ -1348,8 +1431,9 @@ gits:main() {
     action="${1:-}"; shift || :
 
     [[ -n "$action" ]] || {
-        out:info "Current status follows. Run '$(basename "$0") fs' to first do a fetch, then full status"
         gits:run status -sb -uall
+        echo
+        out:info "${CBBLU}(see also: gits fs)"
         exit
     }
 

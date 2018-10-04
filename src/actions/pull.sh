@@ -1,4 +1,16 @@
-### pull backtrack [N] Usage:help-pull
+### pull [backtrack [N]] Usage:help-pull
+#
+# gits pull
+# ---------
+#
+# With no options, performs a fetch and checks for fast-forwardability.
+#
+# If the remote branch is simply ahead, the local branch will be fast-forwarded.
+#
+# If the branches have diverged, no pull is performed and a warning is printed.
+#
+# gits pull backtrack [N]
+# -----------------------
 #
 # If your local and remote branches have diverged due to upstream having rebased, do a backtrack.
 #
@@ -19,6 +31,11 @@ gits:pull:_dispatch() {
 
     local action="${1:-}" ; shift || :
 
+    if [[ -z "$action" ]]; then
+        gits:pull:checking
+        return
+    fi
+
     case "$action" in
     backtrack)
         gits:pull:backtrack "$@"
@@ -27,6 +44,21 @@ gits:pull:_dispatch() {
         out:fail "No subaction specified"
         ;;
     esac
+}
+
+gits:pull:checking() {
+    gits:run fetch --all
+    
+    if git status | grep -qP "^Your branch.+can be fast-forwarded" &&
+            git status -vqP "^Changes|^Untracked"; then
+
+        gits:run pull
+
+    else
+        git status
+        echo
+        out:fail "Unsure whether to pull yet."
+    fi
 }
 
 gits:pull:backtrack() {
