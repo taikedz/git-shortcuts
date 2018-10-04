@@ -50,7 +50,7 @@ gits:pull:checking() {
     gits:run fetch --all
     
     if git status | grep -qP "^Your branch.+can be fast-forwarded" &&
-            git status -vqP "^Changes|^Untracked"; then
+            git status| grep -vqP "^Changes|^Untracked"; then
 
         gits:run pull
 
