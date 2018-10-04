@@ -1,6 +1,6 @@
 gits:common:fetch-status() {
     gits:run fetch --all
-    gits:run status
+    gits:run status -uall
 }
 
 gits:local-help() {

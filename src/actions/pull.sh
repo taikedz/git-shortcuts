@@ -1,4 +1,4 @@
-### pull backtrack [N] Usage:help
+### pull backtrack [N] Usage:help-pull
 #
 # If your local and remote branches have diverged due to upstream having rebased, do a backtrack.
 #
@@ -15,7 +15,10 @@
 #%include patterns.sh
 
 gits:pull:_dispatch() {
+    gits:local-help pull "$@"
+
     local action="${1:-}" ; shift || :
+
     case "$action" in
     backtrack)
         gits:pull:backtrack "$@"

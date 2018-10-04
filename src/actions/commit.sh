@@ -9,9 +9,16 @@
 #
 # if no MESSAGE is suppplied, an editor session is started
 #
+# If the current branch is master, and `allow_master_commits` in .gits-shorthands is not set,
+#   then prompt the user whether to allow.
+#   When set to `true`, never prompts and allows comitting to master
+#   When set to `false`, never prompts and prevents comitting to master
+#
 ###/doc
 
 gits:commit() {
+    gits:local-help commit "$@"
+
     gits:commit:check_master
 
     # need to add help that does not catch --help as part of message

@@ -1,4 +1,12 @@
+### gits push [REMOTE [BRANCH]] Usage:help-push
+#
+# Push to remote; if not set, automatically guess and set upstream
+#
+###/doc
+
 gits:push() {
+    gits:local-help push "$@"
+
     local remote branch localbranch pushargs
     pushargs=(push --set-upstream)
     localbranch="$(gits:current-branch)"

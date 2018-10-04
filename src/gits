@@ -15,7 +15,8 @@ gits:main() {
     action="${1:-}"; shift || :
 
     [[ -n "$action" ]] || {
-        gits:common:fetch-status
+        out:info "Current status follows. Run '$(basename "$0") fs' to first do a fetch, then full status"
+        gits:run status -sb -uall
         exit
     }
 
