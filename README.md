@@ -8,6 +8,8 @@ Git has quite a few long-winded commands that are frequently useful, and some co
 
 ## Features
 
+`gits` provides short-hand commands for common long-winded or hard-to-remember git commands. It prints the commands it runs, and then executes them. If you want to use it just to show the commands as reminders, set `GITS_no_execute=true` in your environment or `~/.bashrc` file
+
 Find out your current status
 
     $ gits

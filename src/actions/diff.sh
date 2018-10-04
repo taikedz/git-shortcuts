@@ -26,7 +26,7 @@ gits:diff() {
     local item
 
     for item in "$@"; do
-        git diff --color HEAD -- "$item" |gits:diff:report-empty "$item"| less -R
+        gits:run diff --color HEAD -- "$item" |gits:diff:report-empty "$item"| less -R
     done
 }
 

@@ -1,12 +1,12 @@
 gits:push() {
-    local remote branch localbranch gitpush
-    gitpush=(git push --set-upstream)
+    local remote branch localbranch pushargs
+    pushargs=(push --set-upstream)
     localbranch="$(gits:current-branch)"
 
     [[ -n "$localbranch" ]] || out:fail "Could not get local branch !"
 
     if [[ -z "$*" ]]; then
-        "${gitpush[@]}" origin "$localbranch"
+        gits:run "${pushargs[@]}" origin "$localbranch"
         return
     fi
 
@@ -15,10 +15,10 @@ gits:push() {
     gits:remote-exists "$remote" || out:fail "No such remote '$remote'"
 
     if [[ -z "$*" ]]; then
-        "${gitpush[@]}" "$remote" "$localbranch"
+        gits:run "${pushargs[@]}" "$remote" "$localbranch"
     else
         branch="$1"; shift
 
-        "${gitpush[@]}" "$remote" "$branch"
+        gits:run "${pushargs[@]}" "$remote" "$branch"
     fi
 }

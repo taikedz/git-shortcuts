@@ -5,6 +5,10 @@ set -euo pipefail
 
 ### Git Shortcuts Usage:help
 #
+#Tool to provide shortcut commands to common onerous git operations.
+#
+#The tool displays the command, and executes them. To not execute the command, set `GITS_no_execute=true` in your environment
+#
 #Fetch and status
 #
 #    gits fs
@@ -482,8 +486,8 @@ function out:error {
 }
 
 gits:common:fetch-status() {
-    git fetch --all
-    git status
+    gits:run fetch --all
+    gits:run status
 }
 
 gits:local-help() {
@@ -505,7 +509,7 @@ gits:local-help-noempty() {
 }
 
 gits:current-branch() {
-    git branch | grep '^*' | cut -f 2 -d' '
+    gits:run branch | grep '^*' | cut -f 2 -d' '
 }
 
 gits:remote-exists() {
@@ -516,9 +520,27 @@ gits:remote-exists() {
         if [[ "$remote_name" = "$target" ]]; then
             return 0
         fi
-    done < <(git remote)
+    done < <(gits:run remote)
 
     return 1
+}
+
+gits:run() {
+    local token
+
+    echo -en "\033[30;1;43mgit " >&2
+    for token in "$@"; do
+        if [[ "$token" =~ " " ]]; then
+            echo -n "\"$token\" " >&2
+        else
+            echo -n "$token " >&2
+        fi
+    done
+    echo "$CDEF" >&2
+
+    if [[ "${GITS_no_execute:-}" != true ]]; then
+        git "$@"
+    fi
 }
 ##bash-libs: readkv.sh @ 40805f29 (after 1.1.6)
 
@@ -728,7 +750,7 @@ gits:diff() {
     local item
 
     for item in "$@"; do
-        git diff --color HEAD -- "$item" |gits:diff:report-empty "$item"| less -R
+        gits:run diff --color HEAD -- "$item" |gits:diff:report-empty "$item"| less -R
     done
 }
 
@@ -886,8 +908,8 @@ gits:commit() {
 
     # need to add help that does not catch --help as part of message
     local files item arguments
-    files=()
-    arguments=()
+    files=(:)
+    arguments=(:)
     item="$1"
 
     while [[ ! "$item" =~ ^-mm?$ ]]; do
@@ -905,11 +927,11 @@ gits:commit() {
         arguments+=(-m "$*")
     fi
 
-    if [[ -n "${files[*]:-}" ]]; then
-        git add "${files[@]}"
+    if [[ -n "${files[*]:1}" ]]; then
+        gits:run add "${files[@]:1}"
     fi
 
-    git commit "${arguments[@]+${arguments[@]}}"
+    gits:run commit "${arguments[@]:1}"
 }
 
 gits:commit:check_master() {
@@ -960,7 +982,7 @@ gits:log() {
         fi
     fi
 
-    git log "${options[@]}" "$@"
+    gits:run log "${options[@]}" "$@"
 }
 ##bash-libs: varify.sh @ 40805f29 (after 1.1.6)
 
@@ -1064,8 +1086,8 @@ gits:profiles:apply() {
     uname="$(readkv:require Name "$profilef")" #|| out:fail "Name could not be read"
     umail="$(readkv:require Mail "$profilef")" #|| out:fail "Mail could not be read"
 
-    git config user.name "$uname"
-    git config user.email "$umail"
+    gits:run config user.name "$uname"
+    gits:run config user.email "$umail"
 }
 
 gits:profiles:put() {
@@ -1092,14 +1114,14 @@ gits:profiles:list() {
     done
 }
 gits:push() {
-    local remote branch localbranch gitpush
-    gitpush=(git push --set-upstream)
+    local remote branch localbranch pushargs
+    pushargs=(push --set-upstream)
     localbranch="$(gits:current-branch)"
 
     [[ -n "$localbranch" ]] || out:fail "Could not get local branch !"
 
     if [[ -z "$*" ]]; then
-        "${gitpush[@]}" origin "$localbranch"
+        gits:run "${pushargs[@]}" origin "$localbranch"
         return
     fi
 
@@ -1108,15 +1130,15 @@ gits:push() {
     gits:remote-exists "$remote" || out:fail "No such remote '$remote'"
 
     if [[ -z "$*" ]]; then
-        "${gitpush[@]}" "$remote" "$localbranch"
+        gits:run "${pushargs[@]}" "$remote" "$localbranch"
     else
         branch="$1"; shift
 
-        "${gitpush[@]}" "$remote" "$branch"
+        gits:run "${pushargs[@]}" "$remote" "$branch"
     fi
 }
 gits:gc-full() {
-    git -c gc.reflogExpire=0 \
+    gits:run -c gc.reflogExpire=0 \
         -c gc.reflogExpireUnreachable=0 \
         -c gc.rerereresolved=0 \
         -c gc.rerereunresolved=0 \
@@ -1124,11 +1146,11 @@ gits:gc-full() {
         gc
 }
 gits:branch:show-upstream() {
-    git status -sb|grep -oP '^## \K.+'|sed 's/\.\.\./ --> /'
+    gits:run status -sb|grep -oP '^## \K.+'|sed 's/\.\.\./ --> /'
 }
 
 gits:branch:show-all() {
-    git branch -vv
+    gits:run branch -vv
 }
 
 gits:branch:_dispatch() {

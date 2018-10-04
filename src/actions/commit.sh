@@ -16,8 +16,8 @@ gits:commit() {
 
     # need to add help that does not catch --help as part of message
     local files item arguments
-    files=()
-    arguments=()
+    files=(:)
+    arguments=(:)
     item="$1"
 
     while [[ ! "$item" =~ ^-mm?$ ]]; do
@@ -35,11 +35,11 @@ gits:commit() {
         arguments+=(-m "$*")
     fi
 
-    if [[ -n "${files[*]:-}" ]]; then
-        git add "${files[@]}"
+    if [[ -n "${files[*]:1}" ]]; then
+        gits:run add "${files[@]:1}"
     fi
 
-    git commit "${arguments[@]+${arguments[@]}}"
+    gits:run commit "${arguments[@]:1}"
 }
 
 gits:commit:check_master() {

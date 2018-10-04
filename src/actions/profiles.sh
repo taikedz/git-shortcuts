@@ -54,8 +54,8 @@ gits:profiles:apply() {
     uname="$(readkv:require Name "$profilef")" #|| out:fail "Name could not be read"
     umail="$(readkv:require Mail "$profilef")" #|| out:fail "Mail could not be read"
 
-    git config user.name "$uname"
-    git config user.email "$umail"
+    gits:run config user.name "$uname"
+    gits:run config user.email "$umail"
 }
 
 gits:profiles:put() {

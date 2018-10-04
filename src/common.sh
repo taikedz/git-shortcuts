@@ -1,6 +1,6 @@
 gits:common:fetch-status() {
-    git fetch --all
-    git status
+    gits:run fetch --all
+    gits:run status
 }
 
 gits:local-help() {
@@ -22,7 +22,7 @@ gits:local-help-noempty() {
 }
 
 gits:current-branch() {
-    git branch | grep '^*' | cut -f 2 -d' '
+    gits:run branch | grep '^*' | cut -f 2 -d' '
 }
 
 gits:remote-exists() {
@@ -33,7 +33,25 @@ gits:remote-exists() {
         if [[ "$remote_name" = "$target" ]]; then
             return 0
         fi
-    done < <(git remote)
+    done < <(gits:run remote)
 
     return 1
+}
+
+gits:run() {
+    local token
+
+    echo -en "\033[30;1;43mgit " >&2
+    for token in "$@"; do
+        if [[ "$token" =~ " " ]]; then
+            echo -n "\"$token\" " >&2
+        else
+            echo -n "$token " >&2
+        fi
+    done
+    echo "$CDEF" >&2
+
+    if [[ "${GITS_no_execute:-}" != true ]]; then
+        git "$@"
+    fi
 }

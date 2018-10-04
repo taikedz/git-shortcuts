@@ -1,9 +1,9 @@
 gits:branch:show-upstream() {
-    git status -sb|grep -oP '^## \K.+'|sed 's/\.\.\./ --> /'
+    gits:run status -sb|grep -oP '^## \K.+'|sed 's/\.\.\./ --> /'
 }
 
 gits:branch:show-all() {
-    git branch -vv
+    gits:run branch -vv
 }
 
 gits:branch:_dispatch() {

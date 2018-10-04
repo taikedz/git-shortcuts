@@ -1,6 +1,10 @@
 
 ### Git Shortcuts Usage:help
 #
+#Tool to provide shortcut commands to common onerous git operations.
+#
+#The tool displays the command, and executes them. To not execute the command, set `GITS_no_execute=true` in your environment
+#
 #Fetch and status
 #
 #    gits fs

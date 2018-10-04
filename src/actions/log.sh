@@ -21,5 +21,5 @@ gits:log() {
         fi
     fi
 
-    git log "${options[@]}" "$@"
+    gits:run log "${options[@]}" "$@"
 }
