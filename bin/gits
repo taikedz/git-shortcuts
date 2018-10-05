@@ -524,11 +524,6 @@ function out:error {
     echo "${CBRED}ERROR: ${CRED}$*$CDEF" 1>&2
 }
 
-gits:common:fetch-status() {
-    gits:run fetch --all
-    gits:run status -uall
-}
-
 gits:local-help() {
     local section="$1"; shift
 
@@ -759,6 +754,35 @@ gits:store:get-dir() {
     storedir="$HOME/.config/git-shortcuts/${1:-}"
     mkdir -p "$storedir"
     echo "$storedir"
+}
+
+gits:status:short() {
+    local dirs=(: "$@")
+    local d
+
+    [[ -n "${dirs[@]:1}" ]] || dirs=(: .)
+
+    for d in "${dirs[@]:1}"; do
+        (cd "$d"
+        out:info "$PWD"
+        gits:run status -sb -uall
+        )
+    done
+}
+
+gits:status:fetch() {
+    local dirs=(: "$@")
+    local d
+
+    [[ -n "${dirs[@]:1}" ]] || dirs=(: .)
+
+    for d in "${dirs[@]:1}"; do
+        (cd "$d"
+        out:info "$PWD"
+        gits:run fetch --all
+        gits:run status -uall
+        )
+    done
 }
 
 ### diff [RANGE] ARGUMENTS ... Usage:help-diff
@@ -1431,7 +1455,7 @@ gits:main() {
     action="${1:-}"; shift || :
 
     [[ -n "$action" ]] || {
-        gits:run status -sb -uall
+        gits:status:short
         echo
         out:info "${CBBLU}(see also: gits fs)"
         exit
@@ -1445,7 +1469,10 @@ gits:main() {
         autohelp:print help
         ;;
     fs)
-        gits:common:fetch-status
+        gits:status:fetch "$@"
+        ;;
+    status)
+        gits:status:short "$@"
         ;;
     log)
         gits:log "$@"

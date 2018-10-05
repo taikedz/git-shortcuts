@@ -2,6 +2,7 @@
 #%include prefs.sh
 #%include store.sh
 
+#%include actions/status.sh
 #%include actions/diff.sh
 #%include actions/commit.sh
 #%include actions/log.sh

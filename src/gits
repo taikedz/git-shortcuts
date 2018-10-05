@@ -15,7 +15,7 @@ gits:main() {
     action="${1:-}"; shift || :
 
     [[ -n "$action" ]] || {
-        gits:run status -sb -uall
+        gits:status:short
         echo
         out:info "${CBBLU}(see also: gits fs)"
         exit
@@ -29,7 +29,10 @@ gits:main() {
         autohelp:print help
         ;;
     fs)
-        gits:common:fetch-status
+        gits:status:fetch "$@"
+        ;;
+    status)
+        gits:status:short "$@"
         ;;
     log)
         gits:log "$@"
