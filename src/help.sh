@@ -36,5 +36,8 @@
 # gits gc
 #   Garbage collect resources on unreachable commit paths
 #
+# gits profile [...]
+#   Manage user.* config profiles
+#
 ###/doc
 

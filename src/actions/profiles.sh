@@ -1,6 +1,39 @@
 #%include ensureline.sh varify.sh readkv.sh
 
+### gits profile Usage:help-profile
+#
+# Save user/email configurations, apply them, manage them
+#
+# gits profile
+#   Display the user name and email currently configured on the repo
+#
+# gits profile list
+#   Display the defined profiles
+#
+# gits profile get PROFILE
+#   Display the settings for specified profile
+# 
+# gits profile delete PROFILE
+#   Delete a saved profile
+#
+# gits profile save PROFILE USER_NAME EMAIL
+#   Save user name and email to the named profile
+#
+# gits profile apply PROFILE
+#   Configure the repo to use the specified profile
+#
+###/doc
+
+## todo
+# gits profile profilename user.name="User Name" user.email="mail@domain.tld" diff.tool=meld comit.editor=vim
+#
+# save literal config names->values to the key file
+# iterate over config to apply
+# allow a `profile edit` command
+
 gits:profiles:_dispatch() {
+    gits:local-help profile "$@"
+
     local action
     if [[ -z "$*" ]]; then
         echo "Current config:"
@@ -10,7 +43,7 @@ gits:profiles:_dispatch() {
     else
         action="${1:-}" ; shift || :
         case "$action" in
-        put|get|delete|list|apply)
+        save|get|delete|list|apply)
             gits:profiles:"$action" "$@"
             ;;
         *)
@@ -58,14 +91,13 @@ gits:profiles:apply() {
     gits:run config user.email "$umail"
 }
 
-gits:profiles:put() {
+gits:profiles:save() {
     local profiled profilename username useremail
     profilename="$(varify:fil "${1:-}")"; shift || out:fail "No profile name specified"
-    profilef="$(gits:store:create-get-file profiles/$profilename.txt)"
-
     username="${1:-}"; shift || out:fail "No user name specified"
     useremail="${1:-}"; shift || out:fail "No user email specified"
     
+    profilef="$(gits:store:create-get-file profiles/$profilename.txt)"
     echo -e "Name=$username\nMail=$useremail" > "$profilef"
 }
 

@@ -6,6 +6,8 @@ A clean-slate implementation after re-thinking what [`git-newbie`](https://githu
 
 Git has quite a few long-winded commands that are frequently useful, and some common activities can be sped-up a little.
 
+This tool can either be used to run commands using shorthands, or just to provide reminders, letting you type them yourself (learn by doing!)
+
 ## Features
 
 `gits` provides short-hand commands for common long-winded or hard-to-remember git commands. It prints the commands it runs, and then executes them. If you want to use it just to show the commands as reminders, set `GITS_no_execute=true` in your environment or `~/.bashrc` file
@@ -13,12 +15,17 @@ Git has quite a few long-winded commands that are frequently useful, and some co
 Find out your current status
 
     $ gits
-	Fetching origin
-	On branch master
-	Your branch is up to date with 'origin/master'.
+    /home/tai/git/github/taikedz/git-shortcuts
+    git status -sb -uall 
+    ## master...origin/master [ahead 1]
 
+    (see also: gits fs)
 
-See individual diffs in colour in a `less` session each
+Do a fetch/status check
+
+    $ gits fs
+
+See diffs, always in colour (set `GIT_use_less=0` in your environment to view in `less` pager)
 
     $ gits file1 file2 file3
 
@@ -29,36 +36,44 @@ Commit the same files
 ... and get warnings if you commit on master ...
 
 	$ gits . -m
-		You are comitting on master - continue ? [y/N] > n
-		Set 'allow_master_commits = false' in .git-shortcuts to make this decision permanent.
-		ERROR FAIL: Abort
+    You are comitting on master - continue ? [y/N] > n
+    Set 'allow_master_commits = false' in .git-shortcuts to make this decision permanent.
+    ERROR FAIL: Abort
 
-See the log in color, with decorations (if your system's default config doesn't do this automatically)
+See the log in color, with decorations (if your system's default config doesn't do this automatically), in oneline mode
 
     $ gits log
+    git log --color --decorate=short --oneline 
+    8d7c337 (HEAD -> master) Make use of 'less' configurable, rework help
+    4dd3e2b (origin/master) Pull message is OK when repo is OK
+    86607ba Add status check for specified directories
+    16c9052 fix pull verification issue
+    1a94b82 Add pull check, change log command options
 
-        commit 92bcf27cbe6ce2b395d39584e03f9ddf0fee5b0f (HEAD -> master, origin/master)
-        Author: Coder <email@site.net>
-        Date:   Fri Jul 20 15:04:04 2018 +0100
 
-            Implement preferences and store (for master guard and profiles)
-                
-            * Safe mode enabled set -euo pipefail
-            * ...
+See the full log graph, in colour, with decorations, in oneline mode
 
-See the full log graph, in colour, with decorations, [optionally with short descriptions]
+    $ gits log -g
 
-    $ gits log graph [short]
-
-    # versus `git log --graph [--oneline] --all --decorate=short --color`
+    # versus `git log --graph --oneline --all --decorate=short --color`
 
 Save and apply different profiles
 
     # One-time setup
-    $ gits profile put coder "Coder Name" "coder@site.net"
+    $ gits profile save coder "Coder Name" "coder@site.net"
+
     $ gits profile apply coder
 
-    # ---> sets git config user.name and user.email
-    # usable across projects
+    $ gits profile
+    Current config:
+      Name:  Tai Kedzierski
+      Email: dch.tai@gmail.com
+
 
 ( and more to come ... )
+
+# Contributing
+
+This tool is written using [Bash Builder](https://github.com/taikedz/bash-builder). You are welcome to contribute changes and additional features you think would be helpful.
+
+The specific goals of Git Shortcuts is to provide a tool that provides short-hand ways of performing long-winded tasks or inconveniently lengthy commands.

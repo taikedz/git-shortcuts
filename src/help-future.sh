@@ -1,11 +1,14 @@
 # Still to implement:
-
-# See user profiles, configure user profile, configure local repo with profile
+# 
+# Bump version
 #
-#   gits profile list
-#   gits profile put PROFILE NAME EMAIL
-#   gits profile apply PROFILE
+# +++++++++++
+# Check past tags along the master branch for semver version numbers (disallow performing task on any branch other than master by default)
+# allow a command to optionally bump "major", "minor" or "bugfix" and add the appropriate tag
 #
+#   gits vbump (major|minor|bugfix) [ANNOTATION]
+#
+# +++++++++++
 # Modify remote - if the URL starts with '%' then it is a substitution
 # the first character after `%` defines the pattern separator
 #
@@ -14,6 +17,7 @@
 #
 #   gits remote REMOTE { URL | SUBSTITUTION }
 #
+# +++++++++++
 # Create github repo
 #
 #   gits github create USER/PROJECT DESCRIPTION
@@ -22,16 +26,14 @@
 #
 #   gits github delete { tag | branch } REFNAME
 #
-# Clean the repository
-#
-#   gits clean
-#
+# +++++++++++
 # Create mailing patch, apply mailing patch
 # specify file `-` to use stout/stdin
 #
 #   gits patch get FROM_REF TO_REF [FILE]
 #   gits patch apply [FILE]
 #
+# +++++++++++
 # List license names,
 #  add a license file to license library,
 #  dump license text,
