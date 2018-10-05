@@ -46,11 +46,25 @@ gits:run() {
     done
     echo "$CDEF" >&2
 
-    # If output is piped to less, sometimes the stderr output can get displayed there
-    # Prevent such an occurrence
-    sleep 0.2
+    if gits:use_less; then
+        sleep "$GITS_use_less"
+    fi
 
     if [[ "${GITS_no_execute:-}" != true ]]; then
-        git "$@"
+        if gits:use_less; then
+            git "$@" | less -R
+        else
+            git "$@"
+        fi
     fi
+}
+
+gits:use_less() {
+    [[ "${GITS_use_less:-}" =~ ^[0-9.]+$ ]] && [[ "${GITS_use_less_internal:-}" = true ]]
+}
+
+gits:pager() {
+    GITS_use_less_internal=true
+    "$@"
+    unset GITS_use_less_internal
 }

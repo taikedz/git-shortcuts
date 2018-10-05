@@ -54,5 +54,5 @@ gits:log() {
         options+=(--oneline)
     fi
 
-    gits:run log "${options[@]}" "$@"
+    gits:pager gits:run log "${options[@]}" "$@"
 }

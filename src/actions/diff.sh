@@ -1,9 +1,6 @@
 ### diff [RANGE] ARGUMENTS ... Usage:help-diff
-# Display diffs in colour, inside `less`
 #
-# To display the diff for all changes, run
-#
-#   gits .
+# Display diffs in colour
 #
 # The RANGE option can be specified as "/" optinally followed by a first number,
 #   optionally followed by another "/", optionally followed by a second number
@@ -72,18 +69,5 @@ gits:diff() {
         parameters+=("$@")
     fi
 
-
-    gits:run diff --color "${parameters[@]:1}" | less -R
-}
-
-gits:diff:report-empty() {
-    local i=0
-    while read; do
-        echo "$REPLY"
-        ((i+=1))
-    done
-    if [[ "$i" = 0 ]]; then
-        echo "${CYEL}No changes on '$1'${CDEF}"
-        return 1
-    fi
+    gits:pager gits:run diff --color "${parameters[@]:1}"
 }
