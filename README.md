@@ -69,6 +69,14 @@ Save and apply different profiles
       Name:  Tai Kedzierski
       Email: dch.tai@gmail.com
 
+Commit with an alternate profile
+
+    $ gits . -m/user2
+
+    # sets user2's details in `config user.name` and `config user.email`,
+    #  commits
+    #  then reverts
+
 
 ( and more to come ... )
 

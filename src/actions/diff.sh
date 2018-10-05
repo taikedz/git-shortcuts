@@ -29,19 +29,8 @@
 #
 ###/doc
 
-gits:check-commit() {
-    local x
-    for x in "$@"; do
-        if [[ "$x" =~ ^-mm?$ ]]; then
-            return 1
-        fi
-    done
-
-    return 0
-}
-
 gits:diff() {
-    gits:check-commit "$@" || {
+    gits:commit:check "$@" || {
         gits:commit "$@"
         return
     }

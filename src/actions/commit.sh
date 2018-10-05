@@ -1,13 +1,16 @@
 #%include askuser.sh
 
-### Commit -m[m] [MESSAGE] Usage:help-commit
+### Commit: gits [FILES] -m[m|/PROFILE] [MESSAGE] Usage:help-commit
 #
-# After a series of items, if -m or -mm are found, performs an add + commit
+# After a series of files, if -m or -mm are found, performs an add + commit
 #
 # -m adds a new commit
 # -mm amends the last commit
 #
 # if no MESSAGE is suppplied, an editor session is started
+#
+# if `/PROFILE` is set, commits using user details from the relevant profile, then reverts the details
+#   /PROFILE cannot be used when amending.
 #
 # If the current branch is master, and `allow_master_commits` in .gits-shorthands is not set,
 #   then prompt the user whether to allow.
@@ -15,6 +18,21 @@
 #   When set to `false`, never prompts and prevents comitting to master
 #
 ###/doc
+
+GITS_commitflag="^-m(m|/([a-zA-Z_-]+))?$"
+
+gits:commit:check() {
+    local x
+    for x in "$@"; do
+        if [[ "$x" =~ $GITS_commitflag ]]; then
+            return 1
+        elif [[ "$x" =~ ^-mm/ ]]; then
+            out:fail "Cannot change profile when amending a commit. Reset and re-commit."
+        fi
+    done
+
+    return 0
+}
 
 gits:commit() {
     gits:local-help commit "$@"
@@ -27,14 +45,16 @@ gits:commit() {
     arguments=(:)
     item="$1"
 
-    while [[ ! "$item" =~ ^-mm?$ ]]; do
+    while [[ ! "$item" =~ $GITS_commitflag ]]; do
         files+=("$item")
         shift
         item="$1"
     done
     shift
 
-    if [[ "$item" = -mm ]]; then
+    GITS_profile_switch="${BASH_REMATCH[2]:-}"
+
+    if [[ "$item" =~ ^-mm ]]; then
         arguments+=(--amend)
     fi
 
@@ -46,7 +66,22 @@ gits:commit() {
         gits:run add "${files[@]:1}"
     fi
 
-    gits:run commit "${arguments[@]:1}"
+    if [[ -n "${GITS_profile_switch:-}" ]]; then
+        configname="$(git config user.name)"
+        configmail="$(git config user.email)"
+        gits:profiles:save temp "$configname" "$configmail"
+        gits:profiles:apply "$GITS_profile_switch"
+    fi
+
+    gits:run commit "${arguments[@]:1}" || :
+
+    if [[ -n "${GITS_profile_switch:-}" ]]; then
+        gits:commit:profile-restore
+    fi
+}
+
+gits:commit:profile-restore() {
+    gits:profiles:apply temp
 }
 
 gits:commit:check_master() {
