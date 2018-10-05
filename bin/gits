@@ -543,7 +543,7 @@ gits:local-help-noempty() {
 }
 
 gits:current-branch() {
-    gits:run branch | grep '^*' | cut -f 2 -d' '
+    git branch | grep '^*' | cut -f 2 -d' '
 }
 
 gits:remote-exists() {
@@ -571,6 +571,10 @@ gits:run() {
         fi
     done
     echo "$CDEF" >&2
+
+    # If output is piped to less, sometimes the stderr output can get displayed there
+    # Prevent such an occurrence
+    sleep 0.2
 
     if [[ "${GITS_no_execute:-}" != true ]]; then
         git "$@"
@@ -1368,13 +1372,19 @@ gits:pull:_dispatch() {
 gits:pull:checking() {
     gits:run fetch --all
     
-    if git status | grep -qP "^Your branch.+can be fast-forwarded" &&
-            git status| grep -vqP "^Changes|^Untracked"; then
+    if git status | grep -qP "^Your branch is up to date"; then
+        gits:status:short
+        echo
+        out:info "Everything up to date"
+
+    elif (git status | grep -qP "^Your branch.+can be fast-forwarded" &&
+        git status | grep -vqP "^Changes|^Untracked"
+        ); then
 
         gits:run pull
 
     else
-        git status
+        gits:run status -uall
         echo
         out:fail "Unsure whether to pull yet."
     fi
@@ -1495,6 +1505,9 @@ gits:main() {
     --help)
         autohelp:print
         exit 0
+        ;;
+    diff)
+        gits:diff "$@"
         ;;
     *)
         gits:diff "$action" "$@"

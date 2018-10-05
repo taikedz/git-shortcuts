@@ -17,7 +17,7 @@ gits:local-help-noempty() {
 }
 
 gits:current-branch() {
-    gits:run branch | grep '^*' | cut -f 2 -d' '
+    git branch | grep '^*' | cut -f 2 -d' '
 }
 
 gits:remote-exists() {
@@ -45,6 +45,10 @@ gits:run() {
         fi
     done
     echo "$CDEF" >&2
+
+    # If output is piped to less, sometimes the stderr output can get displayed there
+    # Prevent such an occurrence
+    sleep 0.2
 
     if [[ "${GITS_no_execute:-}" != true ]]; then
         git "$@"

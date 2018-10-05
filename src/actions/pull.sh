@@ -49,13 +49,19 @@ gits:pull:_dispatch() {
 gits:pull:checking() {
     gits:run fetch --all
     
-    if git status | grep -qP "^Your branch.+can be fast-forwarded" &&
-            git status| grep -vqP "^Changes|^Untracked"; then
+    if git status | grep -qP "^Your branch is up to date"; then
+        gits:status:short
+        echo
+        out:info "Everything up to date"
+
+    elif (git status | grep -qP "^Your branch.+can be fast-forwarded" &&
+        git status | grep -vqP "^Changes|^Untracked"
+        ); then
 
         gits:run pull
 
     else
-        git status
+        gits:run status -uall
         echo
         out:fail "Unsure whether to pull yet."
     fi
