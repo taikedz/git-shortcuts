@@ -736,6 +736,7 @@ gits:status:short() {
     [[ -n "${dirs[@]:1}" ]] || dirs=(: .)
 
     for d in "${dirs[@]:1}"; do
+        [[ -d "$d" ]] || continue
         (cd "$d"
         out:info "$PWD"
         gits:run status -sb -uall
@@ -750,6 +751,7 @@ gits:status:fetch() {
     [[ -n "${dirs[@]:1}" ]] || dirs=(: .)
 
     for d in "${dirs[@]:1}"; do
+        [[ -d "$d" ]] || continue
         (cd "$d"
         out:info "$PWD"
         gits:run fetch --all
@@ -947,7 +949,7 @@ function askuser:choose {
     done
 }
 
-### Commit: gits [FILES] -m[m][/PROFILE] [MESSAGE] Usage:help-commit
+### Commit: gits [FILES] -m[m|/PROFILE] [MESSAGE] Usage:help-commit
 #
 # After a series of files, if -m or -mm are found, performs an add + commit
 #
@@ -957,6 +959,7 @@ function askuser:choose {
 # if no MESSAGE is suppplied, an editor session is started
 #
 # if `/PROFILE` is set, commits using user details from the relevant profile, then reverts the details
+#   /PROFILE cannot be used when amending.
 #
 # If the current branch is master, and `allow_master_commits` in .gits-shorthands is not set,
 #   then prompt the user whether to allow.
@@ -1441,7 +1444,14 @@ gits:gc-full() {
 ###/doc
 
 gits:branch:show-upstream() {
-    gits:run status -sb|grep -oP '^## \K.+'|sed 's/\.\.\./ --> /'
+    local info
+    info="$(gits:run status -sb|grep -oP '^## \K.+'|sed 's/\.\.\./ --> /')"
+
+    if echo "$info"|grep -o ' --> ' -q ; then
+        echo "$info"
+    else
+        echo "$info --> (none)"
+    fi
 }
 
 gits:branch:show-all() {

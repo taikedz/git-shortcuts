@@ -5,6 +5,7 @@ gits:status:short() {
     [[ -n "${dirs[@]:1}" ]] || dirs=(: .)
 
     for d in "${dirs[@]:1}"; do
+        [[ -d "$d" ]] || continue
         (cd "$d"
         out:info "$PWD"
         gits:run status -sb -uall
@@ -19,6 +20,7 @@ gits:status:fetch() {
     [[ -n "${dirs[@]:1}" ]] || dirs=(: .)
 
     for d in "${dirs[@]:1}"; do
+        [[ -d "$d" ]] || continue
         (cd "$d"
         out:info "$PWD"
         gits:run fetch --all

@@ -5,7 +5,14 @@
 ###/doc
 
 gits:branch:show-upstream() {
-    gits:run status -sb|grep -oP '^## \K.+'|sed 's/\.\.\./ --> /'
+    local info
+    info="$(gits:run status -sb|grep -oP '^## \K.+'|sed 's/\.\.\./ --> /')"
+
+    if echo "$info"|grep -o ' --> ' -q ; then
+        echo "$info"
+    else
+        echo "$info --> (none)"
+    fi
 }
 
 gits:branch:show-all() {
