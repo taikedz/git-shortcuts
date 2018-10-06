@@ -49,26 +49,33 @@ gits:pull:_dispatch() {
 gits:pull:checking() {
     gits:run fetch --all
     
-    if git status | grep -qP "^Your branch is up to date"; then
+    if git status | grep -qP "^Changes|^Untracked"; then
+        gits:run status -sb
+        out:fail "Changes detected, cannot pull"
+
+    elif git status | grep -qP "^Your branch is up to date"; then
         gits:status:short
         echo
         out:info "Everything up to date"
 
-    elif (git status | grep -qP "^Your branch.+can be fast-forwarded" &&
-        git status | grep -vqP "^Changes|^Untracked"
-        ); then
+    elif git status | grep -qP "^Your branch.+can be fast-forwarded"; then
 
         gits:run pull
+
+    elif gits:branch:show-upstream | grep -qP ' \(none\)$'; then
+        out:fail "No remote detected"
 
     else
         gits:run status -uall
         echo
         out:fail "Unsure whether to pull yet."
+
     fi
 }
 
 gits:pull:backtrack() {
     local back_by="${1:-}"; shift || :
+    local headnum
 
     if [[ -n "$back_by" ]]; then
         [[ "$back_by" =~ $PAT_num ]] || out:fail "NaN: $back_by"
@@ -81,7 +88,9 @@ gits:pull:backtrack() {
 
     fi
 
-    gits:run log --graph --oneline --all -n10
+    headnum="$(git log --graph --oneline --all --decorate=short |grep '(HEAD ->' -n|cut -f1 -d:)"
+
+    gits:run log --graph --oneline --all -n${headnum}
 
     askuser:confirm "Pull now ?" || exit 1
 
