@@ -39,5 +39,8 @@
 # gits profile [...]
 #   Manage user.* config profiles
 #
+# gits version {ls|bump [KEYWORD]
+#   See the latest tagged version, suggest next version
+#
 ###/doc
 
