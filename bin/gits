@@ -2,6 +2,9 @@
 
 set -euo pipefail
 
+GITS_software_version="1.0"
+GITS_software_version_message="(C) Tai Kedzierski, GPLv3. https://github.com/taikedz/git-shortcuts"
+
 
 ### Git Shortcuts Usage:help
 #
@@ -1999,6 +2002,14 @@ gits:main() {
     }
 
     case "$action" in
+    --help)
+        autohelp:print
+        exit 0
+        ;;
+    --version)
+        out:info "Git Shortcuts @ $GITS_software_version"
+        out:info "${CGRN}$GITS_software_version_message"
+        ;;
     -mm)
         gits:commit "$action" "$@"
         ;;
@@ -2031,10 +2042,6 @@ gits:main() {
         ;;
     branch)
         gits:branch:_dispatch "$@"
-        ;;
-    --help)
-        autohelp:print
-        exit 0
         ;;
     diff)
         gits:diff "$@"
