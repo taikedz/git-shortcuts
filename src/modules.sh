@@ -12,3 +12,4 @@
 #%include actions/gc.sh
 #%include actions/branch.sh
 #%include actions/clean.sh
+#%include actions/version.sh

@@ -47,7 +47,7 @@ set -euo pipefail
 
 
 
-##bash-libs: autohelp.sh @ 646701a1 (after 1.1.6)
+##bash-libs: autohelp.sh @ 011d7327 (1.3.2)
 
 ### Autohelp Usage:bbuild
 #
@@ -228,9 +228,9 @@ autohelp:check_section() {
         fi
     done
 }
-##bash-libs: out.sh @ 646701a1 (after 1.1.6)
+##bash-libs: out.sh @ 011d7327 (1.3.2)
 
-##bash-libs: colours.sh @ 646701a1 (after 1.1.6)
+##bash-libs: colours.sh @ 011d7327 (1.3.2)
 
 ### Colours for terminal Usage:bbuild
 # A series of shorthand colour flags for use in outputs, and functions to set your own flags.
@@ -277,7 +277,7 @@ autohelp:check_section() {
 #
 ###/doc
 
-##bash-libs: tty.sh @ 646701a1 (after 1.1.6)
+##bash-libs: tty.sh @ 011d7327 (1.3.2)
 
 tty:is_ssh() {
     [[ -n "$SSH_TTY" ]] || [[ -n "$SSH_CLIENT" ]] || [[ "$SSH_CONNECTION" ]]
@@ -549,7 +549,7 @@ gits:pager() {
     "$@"
     unset GITS_use_less_internal
 }
-##bash-libs: readkv.sh @ 646701a1 (after 1.1.6)
+##bash-libs: readkv.sh @ 011d7327 (1.3.2)
 
 ### Key Value Pair Reader Usage:bbuild
 #
@@ -611,7 +611,7 @@ function readkv:require {
 readkv:meaningful_data() {
     grep -v -P '^\s*(#.*)?$' "$1"
 }
-##bash-libs: ensureline.sh @ 646701a1 (after 1.1.6)
+##bash-libs: ensureline.sh @ 011d7327 (1.3.2)
 
 ### ensureline Usage:bbuild
 #
@@ -822,7 +822,7 @@ gits:diff() {
 
     gits:pager gits:run diff --color "${parameters[@]:1}"
 }
-##bash-libs: askuser.sh @ 646701a1 (after 1.1.6)
+##bash-libs: askuser.sh @ 011d7327 (1.3.2)
 
 ### askuser Usage:bbuild
 # Present the user with questions on stderr
@@ -1116,7 +1116,7 @@ gits:log() {
 
     gits:pager gits:run log "${options[@]}" "$@"
 }
-##bash-libs: varify.sh @ 646701a1 (after 1.1.6)
+##bash-libs: varify.sh @ 011d7327 (1.3.2)
 
 ### Varify Usage:bbuild
 # Make a string into a valid variable name or file name
@@ -1335,7 +1335,7 @@ gits:push() {
 #
 ###/doc
 
-##bash-libs: patterns.sh @ 646701a1 (after 1.1.6)
+##bash-libs: patterns.sh @ 011d7327 (1.3.2)
 
 ### Useful patterns Usage:bbuild
 #
@@ -1487,6 +1487,503 @@ gits:branch:_dispatch() {
 gits:clean() {
     git clean -dfx
 }
+##bash-libs: git.sh @ 011d7327 (1.3.2)
+
+### Git handlers Usage:bbuild
+#
+# Some handler functions wrapping git, for automation scripts that pull/update git repositories.
+#
+###/doc
+
+### git:ensure URL [DIRPATH] Usage:bbuild
+#
+# Clone a repository, optionally to a directory path or ./<reponame> when none specified
+#
+# If a repository already exists here, check that the URL matches at least one remote,
+#   if so, update
+#   if not, return error
+#
+# Error codes used
+# 10 - no URL
+# 11 - directory exists, and is not a git repo
+# 12 - directory exists, but the specified URL was not among the remotes
+#
+###/doc
+
+git:clone() {
+    local url dirpath reponame
+    url="${1:-}"; shift || :
+    [[ -n "$url" ]] || return 10
+
+    reponame="$(basename "$url")"
+    reponame="${reponame%*.git}"
+
+    dirpath="${1:-./$reponame}"
+
+    [[ -d "$dirpath" ]] || {
+        git clone "$url" "$dirpath"
+        return "$?"
+    }
+
+    [[ -d "$dirpath/.git" ]] || {
+        return 11
+    }
+
+    ( cd "$dirpath" ; git remote -v | grep "$url" -q ) || {
+        return 12
+    }
+
+    ( cd "$dirpath" ; git:update master )
+}
+
+### git:update [BRANCH [REMOTE] ] Usage:bbuild
+#
+# Check out a branch (default master), stashing if needed, and pull the latest changes from remote (default origin)
+#
+# 10 - Untracked files present; cannot stash, cannot pull
+# 11 - stash failed
+# 12 - no remotes
+#
+###/doc
+
+git:update() {
+    local status_string branch remote
+
+    branch="${1:-master}"; shift || :
+    remote="${1:-origin}"; shift || :
+
+    [[ $(git remote -v | wc -l | cut -d' ' -f2) -gt 0 ]] || return 12
+
+    status_string="$(git status)"
+    if ! ( echo "$status_string" | grep "working tree clean" -iq ) ; then
+        if echo "$status_string" | grep -e "^Untracked files:" -q ; then return 10 ; fi
+
+        git stash || return 11
+    fi
+
+    git pull "$remote" "$branch" || return 12
+}
+
+### git:last_tagged_version Usage:bbuild
+#
+# Look through history of the current branch and find the latest version tag
+#
+# If a version is found, that version is echoed, with a prefix:
+#
+# * "=" if the current commit is tagged with the latest version found
+# * ">" if the current commit is later than the latest version found
+#
+# If no version is round, returns with status 1
+#
+###/doc
+
+git:last_tagged_version() {
+    local tagpat='(?<=tag: )([vV]\.?)?[0-9.]+'
+    local tagged_version
+    tagged_version="$(git log --oneline -n 1 --format="%d" | grep -oP "$tagpat")" || :
+
+    if [[ -z "$tagged_version" ]]; then
+        tagged_version="$(git log --format="%d"|grep -vP '^\s*$' | grep -oP "$tagpat" -m 1)" || :
+        if [[ -z "$tagged_version" ]]; then
+            return 1
+        fi
+
+        tagged_version=">$tagged_version"
+    else
+        tagged_version="=$tagged_version"
+    fi
+
+    echo "$tagged_version"
+}
+##bash-libs: version.sh @ 011d7327 (1.3.2)
+
+
+### Version Tool Usage:bbuild
+#
+# Functions for handling version numbers.
+#
+# We assume sem-ver versioning, consisting of
+#
+# 	x.y.z
+#
+# where `x` is more significant than `y`, more significant in turn than `z`
+#
+# All parts must be present. If comparing a version string "2.3", write it as "2.3.0"
+#
+###/doc
+
+### version:gt VERSIONSTRING1 VERSIONSTRING2 Usage:bbuild
+#
+# Returns 0 if VERSIONSTRING1 is strictly greater than VERSIONSTRING2
+#
+###/doc
+
+version:gt() {
+    local version1="$1"; shift || :
+    local version2="$1"; shift || :
+
+    version1="$(version:validate "$version1")" || return 1
+    version2="$(version:validate "$version2")" || return 1
+
+    read v1x v1y v1z < <(echo "$version1"|sed 's/\./ /g')
+    read v2x v2y v2z < <(echo "$version2"|sed 's/\./ /g')
+
+    # if lesser fail, if greater succeed, if equal, check minor
+    [[ "$v1x" -gt "$v2x" ]] && return 0 || :
+    [[ "$v1x" -lt "$v2x" ]] && return 1 || :
+
+    [[ "$v1y" -gt "$v2y" ]] && return 0 || :
+    [[ "$v1y" -lt "$v2y" ]] && return 1 || :
+
+    # At this point, equality of the patch version is also a disqualifier.
+    [[ "$v1z" -gt "$v2z" ]] && return 0 || :
+    [[ "$v1z" -le "$v2z" ]] && return 1 || :
+
+}
+
+### version:next {major|minor|patch} VERSIONSTRING Usage:bbuild
+#
+# Bump the relevant version number.
+#
+###/doc
+
+version:next() {
+    local vsection="$1"; shift || :
+    local sversion="$1"; shift || :
+
+    version="$(version:validate "$sversion")" || return 1
+
+    read vx vy vz < <(echo "$sversion"|sed 's/\./ /g')
+
+    case "$vsection" in
+    major)
+        vx=$((vx+1))
+        vy=0
+        vz=0
+        ;;
+    minor)
+        vy=$((vy+1))
+        vz=0
+        ;;
+    patch)
+        vz=$((vz+1)) ;;
+    *)
+        return 1
+        ;;
+    esac
+
+    echo "${vx}.${vy}.${vz}"
+    return 0
+}
+
+version:validate() {
+    . <(args:use:local version -- "$@") ; 
+    if [[ "$version" =~ ^[0-9]+$ ]]; then
+        echo "${version}.0.0"
+
+    elif [[ "$version" =~ ^[0-9]+\.[0-9]+$ ]]; then
+        echo "${version}.0"
+
+    elif [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        echo "$version"
+
+    else
+        return 1
+    fi
+}
+##bash-libs: args.sh @ 011d7327 (1.3.2)
+
+
+### args Usage:bbuild
+#
+# An arguments handling utility.
+#
+###/doc
+
+### args:get TOKEN ARGS ... Usage:bbuild
+#
+# Given a TOKEN, find the argument value
+#
+# Typically called with the parent's arguments
+#
+# 	args:get --key "$@"
+# 	args:get -k "$@"
+#
+# If TOKEN is an int, returns the argument at that index (starts at 1, negative numbers count from end backwards)
+#
+# If TOKEN starts with two dashes ("--"), expect the value to be supplied after an equal sign
+#
+# 	--token=desired_value
+#
+# If TOKEN starts with a single dash, and is a letter or a number, expect the value to be the following token
+#
+# 	-t desired_value
+#
+# Returns 1 if could not find anything appropriate.
+#
+###/doc
+
+args:get() {
+    local seek="$1"; shift || :
+
+    if [[ "$seek" =~ $PAT_num ]]; then
+        local arguments=("$@")
+
+        # Get the index starting at 1
+        local n=$((seek-1))
+        # but do not affect wrap-arounds
+        [[ "$n" -ge 0 ]] || n=$((n+1))
+
+        echo "${arguments[$n]}"
+
+    elif [[ "$seek" =~ ^--.+ ]]; then
+        args:get_long "$seek" "$@"
+
+    elif [[ "$seek" =~ ^-[a-zA-Z0-9]$ ]]; then
+        args:get_short "$seek" "$@"
+
+    else
+        return 1
+    fi
+}
+
+args:get_short() {
+    local token="$1"; shift || :
+    while [[ -n "$*" ]]; do
+        local item="$1"; shift || :
+
+        if [[ "$item" = "$token" ]]; then
+            echo "$1"
+            return 0
+        fi
+    done
+    return 1
+}
+
+args:get_long() {
+    local token="$1"; shift || :
+    local tokenpat="^$token=(.*)$"
+
+    for item in "$@"; do
+        if [[ "$item" =~ $tokenpat ]]; then
+            echo "${BASH_REMATCH[1]}"
+            return 0
+        fi
+    done
+    return 1
+}
+
+### args:has TOKEN ARGS ... Usage:bbuild
+#
+# Determines whether TOKEN is present on its own in ARGS
+#
+# Typically called with the parent's arguments
+#
+# 	args:has thing "$@"
+#
+# Returns 0 on success for example
+#
+# 	args:has thing "one" "thing" "or" "another"
+#
+# Returns 1 on failure for example
+#
+# 	args:has thing "one thing" "or another"
+#
+# "one thing" is not a valid match for "thing" as a token.
+#
+###/doc
+
+args:has() {
+    local token="$1"; shift || :
+    for item in "$@"; do
+        if [[ "$token" = "$item" ]]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+### args:after TOKEN ARGS ... Usage:bbuild
+#
+# Return all tokens after TOKEN via the RETARR_ARGSAFTER
+#
+#    myargs=(one two -- three "four and" five)
+# 	args:after -- "${myargs[@]}"
+#
+# 	for a in "${RETARR_ARGSAFTER}"; do
+# 		echo "$a"
+# 	done
+#
+# The above prints
+#
+# 	three
+# 	four and
+# 	five
+#
+###/doc
+
+args:after() {
+    local token="$1"; shift || :
+    
+    local current_token="$1"; shift || :
+    while [[ "$#" -gt 0 ]] && [[ "$current_token" != "$token" ]]; do
+        current_token="$1"; shift || :
+    done
+
+    RETARR_ARGSAFTER=("$@")
+}
+
+### args:use ARGNAMES ... -- ARGVALUES ... Usage:bbuild
+# 
+# Consume arguments into named global variables.
+#
+# If not enough argument values are found, the first named variable that failed to be assigned is printed as error
+#
+# Example:
+#
+#   #%include out.sh
+#   #%include args.sh
+#
+#   get_parameters() {
+#       . <(args:use INFILE OUTFILE -- "$@")
+#
+#       [[ -f "$INFILE" ]]  || out:fail "Input file '$INFILE' does not exist"
+#       [[ -f "$OUTFILE" ]] || out:fail "Output file '$OUTFILE' does not exist"
+#   }
+#
+#   main() {
+#       get_parameters "$@"
+#
+#       echo "$INFILE will be converted to $OUTFILE"
+#   }
+#
+#   main "$@"
+#
+###/doc
+args:use() {
+    local argname arglist # TODO - consume meta args
+    arglist=(:)
+    for argname in "$@"; do
+        [[ "$argname" != -- ]] || break
+        [[ "$argname" =~ ^[0-9a-zA-Z_]+$ ]] || out:fail "Internal: Not a valid argument name '$argname'"
+
+        arglist+=("$argname")
+    done
+
+    for argname in "${arglist[@]:1}"; do
+        echo "$ARGSLIB_scope $argname=\"\${1:-}\"; shift || out:fail \"Internal : could not get '$argname'\""
+    done
+}
+
+
+### args:use:local ARGNAMES ... -- ARGVALUES ... Usage:bbuild
+# 
+# Consume arguments into named variables. You need to use process subtitution and sourcing
+#   to call the function, so that it affects the scope in your function.
+#
+# If not enough argument values are found, the named variable that failed to be assigned is printed as error
+#
+# Example:
+#
+#   #%include out.sh
+#   #%include args.sh
+#
+#   person() {
+#       . <(args:use:local name email -- "$@")
+#
+#       echo "$name <$email>"
+#
+#       # $1 and $2 have been consumed into $name and $email
+#       # The rest remains available in $* :
+#       
+#       echo "Additional notes: $*"
+#   }
+#
+#   person "Jo Smith" "jsmith@exam0ple.com" Some details
+#
+###/doc
+args:use:local() {
+    ARGSLIB_scope=local args:use "$@"
+}
+
+### version (ls|bump KEYWORD) Usage:help-version
+#
+# Get the last tagged version from git history, or suggest the next version
+#
+# Expects a numerical version, separated with periods. May have a leading "v"
+#
+# `ls`
+#   Simply print the last version found in the tags of the branch's history
+#
+# `bump KEYWORD`
+#   Use a keyword to suggest what the next version should be. The keywords available are
+#
+#   "patch", "fix", "bugfix" --> bump of patch-level version (3rd digit)
+#
+#   "fetaure", "minor"  --> bump of the minor version number (2nd digit)
+#
+#   "breaking", "major" --> bump of the major version number (1st digit)
+#
+###/doc
+
+gits:version:get() {
+    local version
+    version="$(git:last_tagged_version)" || out:fail "No versions in history"
+
+    out:info "Last version was ${version:1}"
+}
+
+gits:version:suggest() {
+    . <(args:use:local keyword -- "$@") ; 
+    local version
+    version="$(git:last_tagged_version)" || {
+        out:info "No versions found. Suggestion: 0.1"
+        exit 0
+    }
+
+    version="${version:1}" # blat the indicator
+
+    if [[ "$version" =~ ^v ]]; then
+        version="${version:1}"
+    fi
+
+    case "$keyword" in
+        patch|bugfix|fix)
+            keyword=patch
+            ;;
+        feature|minor)
+            keyword=minor
+            ;;
+        breaking|major)
+            keyword=major
+            ;;
+        *)
+            out:fail "Not a valid keyword '$keyword'"
+            ;;
+    esac
+
+    out:info "Suggest: $(version:next "$keyword" "$version")"
+    if [[ "$(gits:current-branch)" != master ]]; then
+        out:warn "Not on master"
+    fi
+}
+
+gits:version:_dispatch() {
+    . <(args:use:local action -- "$@") ; 
+    gits:local-help version "$action" "$@"
+
+    case "$action" in
+    ls)
+        gits:version:get
+        ;;
+    bump)
+        gits:version:suggest "$@"
+        ;;
+    *)
+        out:fail "Invalid action '$action'. Try --help"
+        ;;
+    esac
+}
 
 gits:main() {
 
@@ -1541,6 +2038,9 @@ gits:main() {
         ;;
     diff)
         gits:diff "$@"
+        ;;
+    version)
+        gits:version:_dispatch "$@"
         ;;
     *)
         gits:diff "$action" "$@"
