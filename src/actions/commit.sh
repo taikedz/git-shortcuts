@@ -27,7 +27,8 @@ gits:commit:check() {
         if [[ "$x" =~ $GITS_commitflag ]]; then
             return 1
         elif [[ "$x" =~ ^-mm/ ]]; then
-            out:fail "Cannot change profile when amending a commit. Reset and re-commit."
+            out:warn "Amended commit: profile change will not be taken into account unless previously empty."
+            sleep 1
         fi
     done
 
