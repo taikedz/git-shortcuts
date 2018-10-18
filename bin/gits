@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-GITS_software_version="1.0.1"
+GITS_software_version="1.0.2"
 GITS_software_version_message="(C) Tai Kedzierski, GPLv3. https://github.com/taikedz/git-shortcuts"
 
 
@@ -53,7 +53,7 @@ GITS_software_version_message="(C) Tai Kedzierski, GPLv3. https://github.com/tai
 
 
 
-##bash-libs: autohelp.sh @ 011d7327 (1.3.2)
+##bash-libs: autohelp.sh @ cb35065f (1.4)
 
 ### Autohelp Usage:bbuild
 #
@@ -234,9 +234,9 @@ autohelp:check_section() {
         fi
     done
 }
-##bash-libs: out.sh @ 011d7327 (1.3.2)
+##bash-libs: out.sh @ cb35065f (1.4)
 
-##bash-libs: colours.sh @ 011d7327 (1.3.2)
+##bash-libs: colours.sh @ cb35065f (1.4)
 
 ### Colours for terminal Usage:bbuild
 # A series of shorthand colour flags for use in outputs, and functions to set your own flags.
@@ -283,7 +283,7 @@ autohelp:check_section() {
 #
 ###/doc
 
-##bash-libs: tty.sh @ 011d7327 (1.3.2)
+##bash-libs: tty.sh @ cb35065f (1.4)
 
 tty:is_ssh() {
     [[ -n "$SSH_TTY" ]] || [[ -n "$SSH_CLIENT" ]] || [[ "$SSH_CONNECTION" ]]
@@ -555,7 +555,7 @@ gits:pager() {
     "$@"
     unset GITS_use_less_internal
 }
-##bash-libs: readkv.sh @ 011d7327 (1.3.2)
+##bash-libs: readkv.sh @ cb35065f (1.4)
 
 ### Key Value Pair Reader Usage:bbuild
 #
@@ -611,13 +611,13 @@ function readkv:require {
     readkv "$@"
 }
 
-### readkv:moeaningful_data FILE Usage:bbuild
+### readkv:meaningful_data FILE Usage:bbuild
 # Dump the file contents, stripping meaningless data (empty lines and comment lines)
 ###/doc
 readkv:meaningful_data() {
     grep -v -P '^\s*(#.*)?$' "$1"
 }
-##bash-libs: ensureline.sh @ 011d7327 (1.3.2)
+##bash-libs: ensureline.sh @ cb35065f (1.4)
 
 ### ensureline Usage:bbuild
 #
@@ -828,7 +828,7 @@ gits:diff() {
 
     gits:pager gits:run diff --color "${parameters[@]:1}"
 }
-##bash-libs: askuser.sh @ 011d7327 (1.3.2)
+##bash-libs: askuser.sh @ cb35065f (1.4)
 
 ### askuser Usage:bbuild
 # Present the user with questions on stderr
@@ -982,7 +982,8 @@ gits:commit:check() {
         if [[ "$x" =~ $GITS_commitflag ]]; then
             return 1
         elif [[ "$x" =~ ^-mm/ ]]; then
-            out:fail "Cannot change profile when amending a commit. Reset and re-commit."
+            out:warn "Amended commit: profile change will not be taken into account unless previously empty."
+            sleep 1
         fi
     done
 
@@ -1122,7 +1123,7 @@ gits:log() {
 
     gits:pager gits:run log "${options[@]}" "$@"
 }
-##bash-libs: varify.sh @ 011d7327 (1.3.2)
+##bash-libs: varify.sh @ cb35065f (1.4)
 
 ### Varify Usage:bbuild
 # Make a string into a valid variable name or file name
@@ -1341,7 +1342,7 @@ gits:push() {
 #
 ###/doc
 
-##bash-libs: patterns.sh @ 011d7327 (1.3.2)
+##bash-libs: patterns.sh @ cb35065f (1.4)
 
 ### Useful patterns Usage:bbuild
 #
@@ -1493,7 +1494,7 @@ gits:branch:_dispatch() {
 gits:clean() {
     git clean -dfx
 }
-##bash-libs: git.sh @ 011d7327 (1.3.2)
+##bash-libs: git.sh @ cb35065f (1.4)
 
 ### Git handlers Usage:bbuild
 #
@@ -1601,7 +1602,7 @@ git:last_tagged_version() {
 
     echo "$tagged_version"
 }
-##bash-libs: version.sh @ 011d7327 (1.3.2)
+##bash-libs: version.sh @ cb35065f (1.4)
 
 
 ### Version Tool Usage:bbuild
@@ -1697,7 +1698,7 @@ version:validate() {
         return 1
     fi
 }
-##bash-libs: args.sh @ 011d7327 (1.3.2)
+##bash-libs: args.sh @ cb35065f (1.4)
 
 
 ### args Usage:bbuild
@@ -1867,17 +1868,24 @@ args:after() {
 #
 ###/doc
 args:use() {
-    local argname arglist # TODO - consume meta args
+    local argname arglist undef_f
     arglist=(:)
     for argname in "$@"; do
         [[ "$argname" != -- ]] || break
-        [[ "$argname" =~ ^[0-9a-zA-Z_]+$ ]] || out:fail "Internal: Not a valid argument name '$argname'"
+        [[ "$argname" =~ ^\??[0-9a-zA-Z_]+$ ]] || out:fail "Internal: Not a valid argument name '$argname'"
 
         arglist+=("$argname")
     done
 
     for argname in "${arglist[@]:1}"; do
-        echo "$ARGSLIB_scope $argname=\"\${1:-}\"; shift || out:fail \"Internal : could not get '$argname'\""
+        if [[ "$argname" =~ ^\? ]]; then
+            argname="${argname:1}"
+            undef_f=":"
+        else
+            undef_f="out:fail \"Internal : could not get '$argname'\""
+        fi
+
+        echo "$ARGSLIB_scope $argname=\"\${1:-}\"; shift || $undef_f"
     done
 }
 
@@ -1991,6 +1999,72 @@ gits:version:_dispatch() {
     esac
 }
 
+### remote [ACTION ...] Usage:help-remote
+#
+# Display data for remotes, or perfrom rename/assignment options
+#
+# gits remote ls
+#   list remotes and their URLs
+#
+# gits remote set REMOTE URL
+#   Assign URL to REMOTE
+#   If the remote does not exist, user is prompted before creating it.
+#
+# gits remote sub REMOTE SUBSTITUTION ...
+#   perform a substitution SUBSTITUTION on remote REMOTE
+#   SUBSTITUTION is a `sed` substitution string
+#   E.g. : gits remote sub origin "s|github.com/me|gitlab.com/myself|"
+#
+###/doc
+
+gits:remote:_dispatch() {
+    . <(args:use:local ?action -- "$@") ; 
+    gits:local-help remote "$action" "$@"
+
+    [[ -n "$action" ]] || {
+        gits:remote:list
+        exit
+    }
+
+    case "$action" in
+    ls|list)
+        gits:remote:list
+        ;;
+    sub)
+        gits:remote:sub "$@"
+        ;;
+    set|set-url)
+        gits:remote:set-url "$@"
+        ;;
+    esac
+}
+
+gits:remote:sub() {
+    . <(args:use:local remote sub -- "$@") ; 
+    local remote_url
+
+    remote_url="$(git remote get-url "$remote")"
+    [[ -n "$remote_url" ]] || out:fail "No URL for '$remote'"
+
+    gits:run remote set-url "$remote" "$(echo "$remote_url"|sed -r -e "$sub")"
+}
+
+gits:remote:list() {
+    git remote | while read remote; do
+        echo "$remote : $(git remote get-url "$remote")"
+    done
+}
+
+gits:remote:set-url() {
+    . <(args:use:local remote url -- "$@") ; 
+    if git remote | grep -Eq "^$remote$" ; then
+        gits:run remote set-url "$remote" "$url"
+    else
+        askuser:confirm "Create new remote '$remote' poitning to '$url' ?" || exit
+        gits:run remote add "$remote" "$url"
+    fi
+}
+
 gits:main() {
 
     local action
@@ -2048,6 +2122,9 @@ gits:main() {
         ;;
     diff)
         gits:diff "$@"
+        ;;
+    remote)
+        gits:remote:_dispatch "$@"
         ;;
     version)
         gits:version:_dispatch "$@"

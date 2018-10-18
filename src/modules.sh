@@ -13,3 +13,4 @@
 #%include actions/branch.sh
 #%include actions/clean.sh
 #%include actions/version.sh
+#%include actions/remote.sh

@@ -69,6 +69,9 @@ gits:main() {
     diff)
         gits:diff "$@"
         ;;
+    remote)
+        gits:remote:_dispatch "$@"
+        ;;
     version)
         gits:version:_dispatch "$@"
         ;;
