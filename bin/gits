@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-GITS_software_version="1.0.2"
+GITS_software_version="1.0.3"
 GITS_software_version_message="(C) Tai Kedzierski, GPLv3. https://github.com/taikedz/git-shortcuts"
 
 
@@ -53,7 +53,7 @@ GITS_software_version_message="(C) Tai Kedzierski, GPLv3. https://github.com/tai
 
 
 
-##bash-libs: autohelp.sh @ cb35065f (1.4)
+##bash-libs: autohelp.sh @ bf310b32 (1.4.1)
 
 ### Autohelp Usage:bbuild
 #
@@ -234,9 +234,17 @@ autohelp:check_section() {
         fi
     done
 }
-##bash-libs: out.sh @ cb35065f (1.4)
+##bash-libs: tty.sh @ bf310b32 (1.4.1)
 
-##bash-libs: colours.sh @ cb35065f (1.4)
+tty:is_ssh() {
+    [[ -n "$SSH_TTY" ]] || [[ -n "$SSH_CLIENT" ]] || [[ "$SSH_CONNECTION" ]]
+}
+
+tty:is_pipe() {
+    [[ ! -t 1 ]]
+}
+
+##bash-libs: colours.sh @ bf310b32 (1.4.1)
 
 ### Colours for terminal Usage:bbuild
 # A series of shorthand colour flags for use in outputs, and functions to set your own flags.
@@ -282,16 +290,6 @@ autohelp:check_section() {
 #   You can override this by calling `colours:check --color=always` at the start of your script
 #
 ###/doc
-
-##bash-libs: tty.sh @ cb35065f (1.4)
-
-tty:is_ssh() {
-    [[ -n "$SSH_TTY" ]] || [[ -n "$SSH_CLIENT" ]] || [[ "$SSH_CONNECTION" ]]
-}
-
-tty:is_pipe() {
-    [[ ! -t 1 ]]
-}
 
 ### colours:check ARGS ... Usage:bbuild
 #
@@ -339,14 +337,14 @@ colours:define() {
 
     # Shorthand colours
 
-    export CBLA="$(colours:set "21;30")"
-    export CRED="$(colours:set "21;31")"
-    export CGRN="$(colours:set "21;32")"
-    export CYEL="$(colours:set "21;33")"
-    export CBLU="$(colours:set "21;34")"
-    export CPUR="$(colours:set "21;35")"
-    export CTEA="$(colours:set "21;36")"
-    export CWHI="$(colours:set "21;37")"
+    export CBLA="$(colours:set "30")"
+    export CRED="$(colours:set "31")"
+    export CGRN="$(colours:set "32")"
+    export CYEL="$(colours:set "33")"
+    export CBLU="$(colours:set "34")"
+    export CPUR="$(colours:set "35")"
+    export CTEA="$(colours:set "36")"
+    export CWHI="$(colours:set "37")"
 
     export CBBLA="$(colours:set "1;30")"
     export CBRED="$(colours:set "1;31")"
@@ -398,6 +396,8 @@ colours:auto() {
 }
 
 colours:auto
+
+##bash-libs: out.sh @ bf310b32 (1.4.1)
 
 ### Console output handlers Usage:bbuild
 #
@@ -555,7 +555,7 @@ gits:pager() {
     "$@"
     unset GITS_use_less_internal
 }
-##bash-libs: readkv.sh @ cb35065f (1.4)
+##bash-libs: readkv.sh @ bf310b32 (1.4.1)
 
 ### Key Value Pair Reader Usage:bbuild
 #
@@ -617,7 +617,7 @@ function readkv:require {
 readkv:meaningful_data() {
     grep -v -P '^\s*(#.*)?$' "$1"
 }
-##bash-libs: ensureline.sh @ cb35065f (1.4)
+##bash-libs: ensureline.sh @ bf310b32 (1.4.1)
 
 ### ensureline Usage:bbuild
 #
@@ -828,12 +828,12 @@ gits:diff() {
 
     gits:pager gits:run diff --color "${parameters[@]:1}"
 }
-##bash-libs: askuser.sh @ cb35065f (1.4)
+
+##bash-libs: askuser.sh @ bf310b32 (1.4.1)
 
 ### askuser Usage:bbuild
 # Present the user with questions on stderr
 ###/doc
-
 
 yespat='^(yes|YES|y|Y)$'
 numpat='^[0-9]+$'
@@ -1123,7 +1123,7 @@ gits:log() {
 
     gits:pager gits:run log "${options[@]}" "$@"
 }
-##bash-libs: varify.sh @ cb35065f (1.4)
+##bash-libs: varify.sh @ bf310b32 (1.4.1)
 
 ### Varify Usage:bbuild
 # Make a string into a valid variable name or file name
@@ -1342,7 +1342,7 @@ gits:push() {
 #
 ###/doc
 
-##bash-libs: patterns.sh @ cb35065f (1.4)
+##bash-libs: patterns.sh @ bf310b32 (1.4.1)
 
 ### Useful patterns Usage:bbuild
 #
@@ -1494,7 +1494,7 @@ gits:branch:_dispatch() {
 gits:clean() {
     git clean -dfx
 }
-##bash-libs: git.sh @ cb35065f (1.4)
+##bash-libs: git.sh @ bf310b32 (1.4.1)
 
 ### Git handlers Usage:bbuild
 #
@@ -1602,8 +1602,8 @@ git:last_tagged_version() {
 
     echo "$tagged_version"
 }
-##bash-libs: version.sh @ cb35065f (1.4)
 
+##bash-libs: version.sh @ bf310b32 (1.4.1)
 
 ### Version Tool Usage:bbuild
 #
@@ -1698,8 +1698,8 @@ version:validate() {
         return 1
     fi
 }
-##bash-libs: args.sh @ cb35065f (1.4)
 
+##bash-libs: args.sh @ bf310b32 (1.4.1)
 
 ### args Usage:bbuild
 #
@@ -1846,16 +1846,20 @@ args:after() {
 #
 # If not enough argument values are found, the first named variable that failed to be assigned is printed as error
 #
+# ARGNAMES prefixed with '?' do not trigger an error
+#
 # Example:
 #
 #   #%include out.sh
 #   #%include args.sh
 #
 #   get_parameters() {
-#       . <(args:use INFILE OUTFILE -- "$@")
+#       . <(args:use INFILE OUTFILE ?comment -- "$@")
 #
 #       [[ -f "$INFILE" ]]  || out:fail "Input file '$INFILE' does not exist"
 #       [[ -f "$OUTFILE" ]] || out:fail "Output file '$OUTFILE' does not exist"
+#
+#       [[ -z "$comment" ]] || echo "Note: $comment"
 #   }
 #
 #   main() {
