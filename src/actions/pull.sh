@@ -53,7 +53,7 @@ gits:pull:checking() {
         gits:run status -sb
         out:fail "Changes detected, cannot pull"
 
-    elif git status | grep -qP "^Your branch is up to date"; then
+    elif git status | grep -qP "^Your branch is (up to date|up-to-date)"; then
         gits:status:short
         echo
         out:info "Everything up to date"
