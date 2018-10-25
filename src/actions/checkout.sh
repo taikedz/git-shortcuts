@@ -26,7 +26,7 @@ $%function gits:checkout(?target) {
 
     gits:local-help checkout "$target" "$@"
 
-    if git:branch:_exists "$target"; then
+    if gits:branch:_exists "$target"; then
         gits:run checkout "$@" "$target"
 
     elif [[ -e "$target" ]]; then
