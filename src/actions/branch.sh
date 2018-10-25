@@ -38,9 +38,9 @@ gits:branch:_dispatch() {
 }
 
 gits:branch:_list_all() {
-    (git branch -r --no-color;git branch --no-color)|sed -r 's/^[ *]*//'
+    (git branch -r --no-color; git branch --no-color)|sed -r 's/^[ *]*//'
 }
 
-gits:branch:_exists() {
+$%function gits:branch:_exists(branch) {
     gits:branch:_list_all | grep -qP "^$branch$"
 }

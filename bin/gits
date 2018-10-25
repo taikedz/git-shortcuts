@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-GITS_software_version="1.1.0"
+GITS_software_version="1.1.2"
 GITS_software_version_message="(C) Tai Kedzierski, GPLv3. https://github.com/taikedz/git-shortcuts"
 
 
@@ -1534,10 +1534,11 @@ gits:branch:_dispatch() {
 }
 
 gits:branch:_list_all() {
-    (git branch -r --no-color;git branch --no-color)|sed -r 's/^[ *]*//'
+    (git branch -r --no-color; git branch --no-color)|sed -r 's/^[ *]*//'
 }
 
 gits:branch:_exists() {
+    . <(args:use:local branch -- "$@") ; 
     gits:branch:_list_all | grep -qP "^$branch$"
 }
 gits:clean() {
