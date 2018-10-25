@@ -15,12 +15,12 @@
 #   Display short status
 #
 # gits fs
-#   Fetch and detailed status
+#   Fetch metadata, and display detailed status
 #
 # gits log [OPTIONS]
 #   Display log, defaulting to oneline display
 # 
-# gits [RANGE] FILES ...
+# gits [diff] [RANGE] FILES ...
 #   See file diffs
 #
 # gits FILES ... -m[m] [MESSAGE ...]
@@ -39,7 +39,7 @@
 # gits profile [...]
 #   Manage user.* config profiles
 #
-# gits version {ls|bump [KEYWORD]
+# gits version [ ls|bump [KEYWORD] ]
 #   See the latest tagged version, suggest next version
 #
 ###/doc

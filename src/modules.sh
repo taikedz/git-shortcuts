@@ -4,6 +4,7 @@
 
 #%include actions/status.sh
 #%include actions/diff.sh
+#%include actions/checkout.sh
 #%include actions/commit.sh
 #%include actions/log.sh
 #%include actions/profiles.sh

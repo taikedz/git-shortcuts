@@ -42,6 +42,9 @@ gits:main() {
     clean)
         gits:clean "$@"
         ;;
+    co|checkout)
+        gits:checkout "$@"
+        ;;
     fs)
         gits:status:fetch "$@"
         ;;

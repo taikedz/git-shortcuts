@@ -4,7 +4,8 @@
 #
 # Get the last tagged version from git history, or suggest the next version
 #
-# Expects a numerical version, separated with periods. May have a leading "v"
+# Expects numerical version tags, separated with periods. May have a leading "v"
+# e.g. `1.3.2`
 #
 # `ls`
 #   Simply print the last version found in the tags of the branch's history
@@ -61,8 +62,13 @@ $%function gits:version:suggest(keyword) {
     fi
 }
 
-$%function gits:version:_dispatch(action) {
+$%function gits:version:_dispatch(?action) {
     gits:local-help version "$action" "$@"
+
+    [[ -n "$action" ]] || {
+        gits:version:get
+        exit
+    }
 
     case "$action" in
     ls)
