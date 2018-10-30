@@ -22,6 +22,7 @@ $%function gits:checkout(?target) {
 
     if [[ -z "$target" ]]; then
         gits:run checkout master
+        return
     fi
 
     gits:local-help checkout "$target" "$@"
