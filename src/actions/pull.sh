@@ -24,7 +24,7 @@
 #
 ###/doc
 
-#%include patterns.sh
+#%include std/patterns.sh
 
 gits:pull:_dispatch() {
     gits:local-help pull "$@"

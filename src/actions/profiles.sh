@@ -1,4 +1,6 @@
-#%include ensureline.sh varify.sh readkv.sh
+#%include std/ensureline.sh
+#%include std/varify.sh
+#%include std/readkv.sh
 
 ### gits profile Usage:help-profile
 #

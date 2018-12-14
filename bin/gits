@@ -52,189 +52,7 @@ GITS_software_version_message="(C) Tai Kedzierski, GPLv3. https://github.com/tai
 ###/doc
 
 
-
-##bash-libs: autohelp.sh @ bf310b32 (1.4.1)
-
-### Autohelp Usage:bbuild
-#
-# Autohelp provides some simple facilities for defining help as comments in your code.
-# It provides several functions for printing specially formatted comment sections.
-#
-# Write your help as documentation comments in your script
-#
-# To output a named section from your script, or a file, call the
-# `autohelp:print` function and it will print the help documentation
-# in the current script, or specified file, to stdout
-#
-# A help comment looks like this:
-#
-#    ### <title> Usage:help
-#    #
-#    # <some content>
-#    #
-#    # end with "###/doc" on its own line (whitespaces before
-#    # and after are OK)
-#    #
-#    ###/doc
-#
-# It can then be printed from the same script by simply calling
-#
-#   autohelp:print
-#
-# You can print a different section by specifying a different name
-#
-# 	autohelp:print section2
-#
-# > This would print a section defined in this way:
-#
-# 	### Some title Usage:section2
-# 	# <some content>
-# 	###/doc
-#
-# You can set a different comment character by setting the 'HELPCHAR' environment variable.
-# Typically, you might want to print comments you set in a INI config file, for example
-#
-# 	HELPCHAR=";" autohelp:print help config-file.ini
-# 
-# Which would then find comments defined like this in `config-file.ini`:
-#
-#   ;;; Main config Usage:help
-#   ; Help comments in a config file
-#   ; may start with a different comment character
-#   ;;;/doc
-#
-#
-#
-# Example usage in a multi-function script:
-#
-#   #!/bin/bash
-#
-#   ### Main help Usage:help
-#   # The main help
-#   ###/doc
-#
-#   ### Feature One Usage:feature_1
-#   # Help text for the first feature
-#   ###/doc
-#
-#   feature1() {
-#       autohelp:check_section feature_1 "$@"
-#       echo "Feature I"
-#   }
-#
-#   ### Feature Two Usage:feature_2
-#   # Help text for the second feature
-#   ###/doc
-#
-#   feature2() {
-#       autohelp:check_section feature_2 "$@"
-#       echo "Feature II"
-#   }
-#
-#   main() {
-#       if [[ -z "$*" ]]; then
-#           ### No command specified Usage:no-command
-#           #No command specified. Try running with `--help`
-#           ###/doc
-#
-#           autohelp:print no-command
-#           exit 1
-#       fi
-#
-#       case "$1" in
-#       feature1|feature2)
-#           "$1" "$@"            # Pass the global script arguments through
-#           ;;
-#       *)
-#           autohelp:check "$@"  # Check if main help was asked for, if so, exits
-#
-#           # Main help not requested, return error
-#           echo "Unknown feature"
-#           exit 1
-#           ;;
-#       esac
-#   }
-#
-#   main "$@"
-#
-###/doc
-
-### autohelp:print [ SECTION [FILE] ] Usage:bbuild
-# Print the specified section, in the specified file.
-#
-# If no file is specified, prints for current script file.
-# If no section is specified, defaults to "help"
-###/doc
-
-HELPCHAR='#'
-
-autohelp:print() {
-    local input_line
-    local section_string="${1:-}"; shift || :
-    local target_file="${1:-}"; shift || :
-    [[ -n "$section_string" ]] || section_string=help
-    [[ -n "$target_file" ]] || target_file="$0"
-
-    #echo -e "\n$(basename "$target_file")\n===\n"
-    local sec_start='^\s*'"$HELPCHAR$HELPCHAR$HELPCHAR"'\s+(.+?)\s+Usage:'"$section_string"'\s*$'
-    local sec_end='^\s*'"$HELPCHAR$HELPCHAR$HELPCHAR"'\s*/doc\s*$'
-    local in_section=false
-
-    while read input_line; do
-        if [[ "$input_line" =~ $sec_start ]]; then
-            in_section=true
-            echo -e "\n${BASH_REMATCH[1]}\n======="
-
-        elif [[ "$in_section" = true ]]; then
-            if [[ "$input_line" =~ $sec_end ]]; then
-                in_section=false
-            else
-                echo "$input_line" | sed -r "s/^\s*$HELPCHAR/ /;s/^  (\S)/\1/"
-            fi
-        fi
-    done < "$target_file"
-
-    if [[ "$in_section" = true ]]; then
-            out:fail "Non-terminated help block."
-    fi
-}
-
-### autohelp:paged Usage:bbuild
-#
-# Display the help in the pager defined in the PAGER environment variable
-#
-###/doc
-autohelp:paged() {
-    : ${PAGER=less}
-    autohelp:print "$@" | $PAGER
-}
-
-### autohelp:check ARGS ... Usage:bbuild
-#
-# Automatically print "help" sections and exit, if "--help" is detected in arguments
-#
-###/doc
-autohelp:check() {
-    autohelp:check_section "help" "$@"
-}
-
-### autohelp:check_section SECTION ARGS ... Usage:bbuild
-# Automatically print documentation for named section and exit, if "--help" is detected in arguments
-#
-###/doc
-autohelp:check_section() {
-    local section arg
-    section="${1:-}"; shift || out:fail "No help section specified"
-
-    for arg in "$@"; do
-        if [[ "$arg" =~ --help ]]; then
-            cols="$(tput cols)"
-            autohelp:print "$section" | fold -w "$cols" -s || autohelp:print "$section"
-            exit 0
-        fi
-    done
-}
-##bash-libs: tty.sh @ bf310b32 (1.4.1)
+##bash-libs: tty.sh @ 69724119 (2.0)
 
 tty:is_ssh() {
     [[ -n "$SSH_TTY" ]] || [[ -n "$SSH_CLIENT" ]] || [[ "$SSH_CONNECTION" ]]
@@ -244,7 +62,7 @@ tty:is_pipe() {
     [[ ! -t 1 ]]
 }
 
-##bash-libs: colours.sh @ bf310b32 (1.4.1)
+##bash-libs: colours.sh @ 69724119 (2.0)
 
 ### Colours for terminal Usage:bbuild
 # A series of shorthand colour flags for use in outputs, and functions to set your own flags.
@@ -397,7 +215,7 @@ colours:auto() {
 
 colours:auto
 
-##bash-libs: out.sh @ bf310b32 (1.4.1)
+##bash-libs: out.sh @ 69724119 (2.0)
 
 ### Console output handlers Usage:bbuild
 #
@@ -484,6 +302,317 @@ function out:fail {
 function out:error {
     echo "${CBRED}ERROR: ${CRED}$*$CDEF" 1>&2
 }
+##bash-libs: syntax-extensions.sh @ 69724119 (2.0)
+
+### Syntax Extensions Usage:syntax
+#
+# Syntax extensions for bash-builder.
+#
+# You will need to import this library if you use Bash Builder's extended syntax macros.
+#
+# You should not however use the functions directly, but the extended syntax instead.
+#
+##/doc
+
+### syntax-extensions:use FUNCNAME ARGNAMES ... Usage:syntax
+#
+# Consume arguments into named global variables.
+#
+# If not enough argument values are found, the first named variable that failed to be assigned is printed as error
+#
+# ARGNAMES prefixed with '?' do not trigger an error
+#
+# Example:
+#
+#   #%include out.sh
+#   #%include syntax-extensions.sh
+#
+#   get_parameters() {
+#       . <(syntax-extensions:use get_parameters INFILE OUTFILE ?comment)
+#
+#       [[ -f "$INFILE" ]]  || out:fail "Input file '$INFILE' does not exist"
+#       [[ -f "$OUTFILE" ]] || out:fail "Output file '$OUTFILE' does not exist"
+#
+#       [[ -z "$comment" ]] || echo "Note: $comment"
+#   }
+#
+#   main() {
+#       get_parameters "$@"
+#
+#       echo "$INFILE will be converted to $OUTFILE"
+#   }
+#
+#   main "$@"
+#
+###/doc
+syntax-extensions:use() {
+    local argname arglist undef_f dec_scope argidx argone failmsg pos_ok
+    
+    dec_scope=""
+    [[ "${SYNTAXLIB_scope:-}" = local ]] || dec_scope=g
+    arglist=(:)
+    argone=\"\${1:-}\"
+    pos_ok=true
+    
+    for argname in "$@"; do
+        [[ "$argname" != -- ]] || break
+        [[ "$argname" =~ ^(\?|\*)?[0-9a-zA-Z_]+$ ]] || out:fail "Internal: Not a valid argument name '$argname'"
+
+        arglist+=("$argname")
+    done
+
+    argidx=1
+    while [[ "$argidx" -lt "${#arglist[@]}" ]]; do
+        argname="${arglist[$argidx]}"
+        failmsg="\"Internal : could not get '$argname' in function arguments\""
+        posfailmsg="Internal: positional argument '$argname' encountered after optional argument(s)"
+
+        if [[ "$argname" =~ ^\? ]]; then
+            echo "$SYNTAXLIB_scope ${argname:1}=$argone; shift || :"
+            pos_ok=false
+
+        elif [[ "$argname" =~ ^\* ]]; then
+            [[ "$pos_ok" != false ]] || out:fail "$posfailmsg"
+            echo "declare -n${dec_scope} ${argname:1}=$argone; shift || out:fail $failmsg"
+
+        else
+            [[ "$pos_ok" != false ]] || out:fail "$posfailmsg"
+            echo "$SYNTAXLIB_scope ${argname}=$argone; shift || out:fail $failmsg"
+        fi
+
+        argidx=$((argidx + 1))
+    done
+}
+
+
+### syntax-extensions:use:local FUNCNAME ARGNAMES ... Usage:syntax
+# 
+# Enables syntax macro: function signatures
+#   e.g. $%function func(var1 var2) { ... }
+#
+# Build with bbuild to leverage this function's use:
+#
+#   #%include out.sh
+#   #%include syntax-extensions.sh
+#
+#   $%function person(name email) {
+#       echo "$name <$email>"
+#
+#       # $1 and $2 have been consumed into $name and $email
+#       # The rest remains available in $* :
+#       
+#       echo "Additional notes: $*"
+#   }
+#
+#   person "Jo Smith" "jsmith@example.com" Some details
+#
+###/doc
+syntax-extensions:use:local() {
+    SYNTAXLIB_scope=local syntax-extensions:use "$@"
+}
+
+args:use:local() {
+    syntax-extensions:use:local "$@"
+}
+
+##bash-libs: autohelp.sh @ 69724119 (2.0)
+
+### Autohelp Usage:bbuild
+#
+# Autohelp provides some simple facilities for defining help as comments in your code.
+# It provides several functions for printing specially formatted comment sections.
+#
+# Write your help as documentation comments in your script
+#
+# To output a named section from your script, or a file, call the
+# `autohelp:print` function and it will print the help documentation
+# in the current script, or specified file, to stdout
+#
+# A help comment looks like this:
+#
+#    ### <title> Usage:help
+#    #
+#    # <some content>
+#    #
+#    # end with "###/doc" on its own line (whitespaces before
+#    # and after are OK)
+#    #
+#    ###/doc
+#
+# It can then be printed from the same script by simply calling
+#
+#   autohelp:print
+#
+# You can print a different section by specifying a different name
+#
+# 	autohelp:print section2
+#
+# > This would print a section defined in this way:
+#
+# 	### Some title Usage:section2
+# 	# <some content>
+# 	###/doc
+#
+# You can set a different comment character by setting the 'HELPCHAR' environment variable.
+# Typically, you might want to print comments you set in a INI config file, for example
+#
+# 	HELPCHAR=";" autohelp:print help config-file.ini
+# 
+# Which would then find comments defined like this in `config-file.ini`:
+#
+#   ;;; Main config Usage:help
+#   ; Help comments in a config file
+#   ; may start with a different comment character
+#   ;;;/doc
+#
+#
+#
+# Example usage in a multi-function script:
+#
+#   #!usr/bin/env bash
+#
+#   ### Main help Usage:help
+#   # The main help
+#   ###/doc
+#
+#   ### Feature One Usage:feature_1
+#   # Help text for the first feature
+#   ###/doc
+#
+#   feature1() {
+#       autohelp:check:section feature_1 "$@"
+#       echo "Feature I"
+#   }
+#
+#   ### Feature Two Usage:feature_2
+#   # Help text for the second feature
+#   ###/doc
+#
+#   feature2() {
+#       autohelp:check:section feature_2 "$@"
+#       echo "Feature II"
+#   }
+#
+#   main() {
+#       case "$1" in
+#       feature1|feature2)
+#           "$1" "$@"            # Pass the global script arguments through
+#           ;;
+#       *)
+#           autohelp:check-no-null "$@"  # Check if main help was asked for, if so, or if no args, exit with help
+#
+#           # Main help not requested, return error
+#           echo "Unknown feature"
+#           exit 1
+#           ;;
+#       esac
+#   }
+#
+#   main "$@"
+#
+###/doc
+
+### autohelp:print [ SECTION [FILE] ] Usage:bbuild
+# Print the specified section, in the specified file.
+#
+# If no file is specified, prints for current script file.
+# If no section is specified, defaults to "help"
+###/doc
+
+HELPCHAR='#'
+
+autohelp:print() {
+    local input_line
+    local section_string="${1:-}"; shift || :
+    local target_file="${1:-}"; shift || :
+    [[ -n "$section_string" ]] || section_string=help
+    [[ -n "$target_file" ]] || target_file="$0"
+
+    local sec_start='^\s*'"$HELPCHAR$HELPCHAR$HELPCHAR"'\s+(.+?)\s+Usage:'"$section_string"'\s*$'
+    local sec_end='^\s*'"$HELPCHAR$HELPCHAR$HELPCHAR"'\s*/doc\s*$'
+    local in_section=false
+
+    while read input_line; do
+        if [[ "$input_line" =~ $sec_start ]]; then
+            in_section=true
+            echo -e "\n${BASH_REMATCH[1]}\n======="
+
+        elif [[ "$in_section" = true ]]; then
+            if [[ "$input_line" =~ $sec_end ]]; then
+                in_section=false
+            else
+                echo "$input_line" | sed -r "s/^\s*$HELPCHAR/ /;s/^  (\S)/\1/"
+            fi
+        fi
+    done < "$target_file"
+
+    if [[ "$in_section" = true ]]; then
+            out:fail "Non-terminated help block."
+    fi
+}
+
+### autohelp:paged Usage:bbuild
+#
+# Display the help in the pager defined in the PAGER environment variable
+#
+###/doc
+autohelp:paged() {
+    : ${PAGER=less}
+    autohelp:print "$@" | $PAGER
+}
+
+### autohelp:check-or-null ARGS ... Usage:bbuild
+# Print help if arguments are empty, or if arguments contain a '--help' token
+#
+###/doc
+autohelp:check-or-null() {
+    if [[ -z "$*" ]]; then
+        autohelp:print help "$0"
+        exit 0
+    else
+        autohelp:check:section "help" "$@"
+    fi
+}
+
+### autohelp:check-or-null:section SECTION ARGS ... Usage:bbuild
+# Print help section SECTION if arguments are empty, or if arguments contain a '--help' token
+#
+###/doc
+autohelp:check-or-null:section() {
+    . <(args:use:local section -- "$@") ; 
+    if [[ -z "$*" ]]; then
+        autohelp:print "$section" "$0"
+        exit 0
+    else
+        autohelp:check:section "$section" "$@"
+    fi
+}
+
+### autohelp:check ARGS ... Usage:bbuild
+#
+# Automatically print "help" sections and exit, if "--help" is detected in arguments
+#
+###/doc
+autohelp:check() {
+    autohelp:check:section "help" "$@"
+}
+
+### autohelp:check:section SECTION ARGS ... Usage:bbuild
+# Automatically print documentation for named section and exit, if "--help" is detected in arguments
+#
+###/doc
+autohelp:check:section() {
+    local section arg
+    section="${1:-}"; shift || out:fail "No help section specified"
+
+    for arg in "$@"; do
+        if [[ "$arg" =~ --help ]]; then
+            cols="$(tput cols)"
+            autohelp:print "$section" | fold -w "$cols" -s || autohelp:print "$section"
+            exit 0
+        fi
+    done
+}
 
 gits:local-help() {
     local section="$1"; shift
@@ -555,7 +684,7 @@ gits:pager() {
     "$@"
     unset GITS_use_less_internal
 }
-##bash-libs: readkv.sh @ bf310b32 (1.4.1)
+##bash-libs: readkv.sh @ 69724119 (2.0)
 
 ### Key Value Pair Reader Usage:bbuild
 #
@@ -617,7 +746,7 @@ function readkv:require {
 readkv:meaningful_data() {
     grep -v -P '^\s*(#.*)?$' "$1"
 }
-##bash-libs: ensureline.sh @ bf310b32 (1.4.1)
+##bash-libs: ensureline.sh @ 69724119 (2.0)
 
 ### ensureline Usage:bbuild
 #
@@ -923,7 +1052,7 @@ gits:clone:_valid-url() {
     ( [[ ! "$url" =~ \.\. ]] && ([[ "$url" =~ ^[a-z]+://[a-z] ]] || [[ "$url" =~ [a-zA-Z0-9_]+@[a-zA-Z] ]]) ) || out:fail "Invalid URL requested"
 }
 
-##bash-libs: askuser.sh @ bf310b32 (1.4.1)
+##bash-libs: askuser.sh @ 69724119 (2.0)
 
 ### askuser Usage:bbuild
 # Present the user with questions on stderr
@@ -1217,7 +1346,7 @@ gits:log() {
 
     gits:pager gits:run log "${options[@]}" "$@"
 }
-##bash-libs: varify.sh @ bf310b32 (1.4.1)
+##bash-libs: varify.sh @ 69724119 (2.0)
 
 ### Varify Usage:bbuild
 # Make a string into a valid variable name or file name
@@ -1436,7 +1565,7 @@ gits:push() {
 #
 ###/doc
 
-##bash-libs: patterns.sh @ bf310b32 (1.4.1)
+##bash-libs: patterns.sh @ 69724119 (2.0)
 
 ### Useful patterns Usage:bbuild
 #
@@ -1597,7 +1726,7 @@ gits:branch:_exists() {
 gits:clean() {
     git clean -dfx
 }
-##bash-libs: git.sh @ bf310b32 (1.4.1)
+##bash-libs: git.sh @ 69724119 (2.0)
 
 ### Git handlers Usage:bbuild
 #
@@ -1706,7 +1835,7 @@ git:last_tagged_version() {
     echo "$tagged_version"
 }
 
-##bash-libs: version.sh @ bf310b32 (1.4.1)
+##bash-libs: version.sh @ 69724119 (2.0)
 
 ### Version Tool Usage:bbuild
 #
@@ -1802,7 +1931,7 @@ version:validate() {
     fi
 }
 
-##bash-libs: args.sh @ bf310b32 (1.4.1)
+##bash-libs: args.sh @ 69724119 (2.0)
 
 ### args Usage:bbuild
 #
@@ -1941,90 +2070,6 @@ args:after() {
     done
 
     RETARR_ARGSAFTER=("$@")
-}
-
-### args:use ARGNAMES ... -- ARGVALUES ... Usage:bbuild
-# 
-# Consume arguments into named global variables.
-#
-# If not enough argument values are found, the first named variable that failed to be assigned is printed as error
-#
-# ARGNAMES prefixed with '?' do not trigger an error
-#
-# Example:
-#
-#   #%include out.sh
-#   #%include args.sh
-#
-#   get_parameters() {
-#       . <(args:use INFILE OUTFILE ?comment -- "$@")
-#
-#       [[ -f "$INFILE" ]]  || out:fail "Input file '$INFILE' does not exist"
-#       [[ -f "$OUTFILE" ]] || out:fail "Output file '$OUTFILE' does not exist"
-#
-#       [[ -z "$comment" ]] || echo "Note: $comment"
-#   }
-#
-#   main() {
-#       get_parameters "$@"
-#
-#       echo "$INFILE will be converted to $OUTFILE"
-#   }
-#
-#   main "$@"
-#
-###/doc
-args:use() {
-    local argname arglist undef_f
-    arglist=(:)
-    for argname in "$@"; do
-        [[ "$argname" != -- ]] || break
-        [[ "$argname" =~ ^\??[0-9a-zA-Z_]+$ ]] || out:fail "Internal: Not a valid argument name '$argname'"
-
-        arglist+=("$argname")
-    done
-
-    for argname in "${arglist[@]:1}"; do
-        if [[ "$argname" =~ ^\? ]]; then
-            argname="${argname:1}"
-            undef_f=":"
-        else
-            undef_f="out:fail \"Internal : could not get '$argname'\""
-        fi
-
-        echo "$ARGSLIB_scope $argname=\"\${1:-}\"; shift || $undef_f"
-    done
-}
-
-
-### args:use:local ARGNAMES ... -- ARGVALUES ... Usage:bbuild
-# 
-# Consume arguments into named variables. You need to use process subtitution and sourcing
-#   to call the function, so that it affects the scope in your function.
-#
-# If not enough argument values are found, the named variable that failed to be assigned is printed as error
-#
-# Example:
-#
-#   #%include out.sh
-#   #%include args.sh
-#
-#   person() {
-#       . <(args:use:local name email -- "$@")
-#
-#       echo "$name <$email>"
-#
-#       # $1 and $2 have been consumed into $name and $email
-#       # The rest remains available in $* :
-#       
-#       echo "Additional notes: $*"
-#   }
-#
-#   person "Jo Smith" "jsmith@exam0ple.com" Some details
-#
-###/doc
-args:use:local() {
-    ARGSLIB_scope=local args:use "$@"
 }
 
 ### version (ls|bump KEYWORD) Usage:help-version

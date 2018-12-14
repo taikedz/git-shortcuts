@@ -1,4 +1,6 @@
-#%include git.sh version.sh args.sh
+#%include std/git.sh
+#%include std/version.sh
+#%include std/args.sh
 
 ### version (ls|bump KEYWORD) Usage:help-version
 #

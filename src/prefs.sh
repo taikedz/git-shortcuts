@@ -1,4 +1,5 @@
-#%include readkv.sh ensureline.sh
+#%include std/readkv.sh
+#%include std/ensureline.sh
 
 gits:prefs:get() {
     local prefsfile setting

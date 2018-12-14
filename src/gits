@@ -7,7 +7,8 @@ GITS_software_version_message="(C) Tai Kedzierski, GPLv3. https://github.com/tai
 
 #%include help.sh
 
-#%include autohelp.sh out.sh
+#%include std/autohelp.sh
+#%include std/out.sh
 
 #%include modules.sh
 

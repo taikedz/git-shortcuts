@@ -1,4 +1,4 @@
-#%include askuser.sh
+#%include std/askuser.sh
 
 ### Commit: gits [FILES] -m[m|/PROFILE] [MESSAGE] Usage:help-commit
 #

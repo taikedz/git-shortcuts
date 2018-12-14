@@ -1,4 +1,4 @@
-#%include askuser.sh
+#%include std/askuser.sh
 
 ### remote [ACTION ...] Usage:help-remote
 #
