@@ -613,6 +613,177 @@ autohelp:check:section() {
         fi
     done
 }
+##bash-libs: patterns.sh @ 7b11e175 (2.0.3)
+
+### Useful patterns Usage:bbuild
+#
+# Some useful regex patterns, exported as environment variables.
+#
+# They are not foolproof, and you are encouraged to improve upon them.
+#
+# $PAT_blank - detects whether an entire line is empty or whitespace
+# $PAT_comment - detects whether is a line is a script comment (assumes '#' as the comment marker)
+# $PAT_num - detects whether the string is an integer number in its entirety
+# $PAT_cvar - detects if the string is a valid C variable name
+# $PAT_filename - detects if the string is a safe UNIX or Windows file name;
+#   does not allow presence of whitespace or special characters aside from '_', '.', '-'
+# $PAT_email - simple heuristic to determine whether a string looks like a valid email address
+#
+###/doc
+
+export PAT_blank='^\s*$'
+export PAT_comment='^\s*(#.*)?$'
+export PAT_num='^[0-9]+$'
+export PAT_cvar='^[a-zA-Z_][a-zA-Z0-9_]*$'
+export PAT_filename='^[a-zA-Z0-9_.-]$'
+export PAT_email="$PAT_filename@$PAT_filename.$PAT_cvar"
+
+##bash-libs: debug.sh @ 7b11e175 (2.0.3)
+
+### Debug lib Usage:bbuild
+#
+# Debugging tools and functions.
+#
+# You need to activate debug mode using debug:activate command at the start of your script
+#  (or from whatever point you wish it to activate)
+#
+###/doc
+
+### Environment Variables Usage:bbuild
+#
+# DEBUG_mode : set to 'true' to enable debugging output
+#
+###/doc
+
+: ${DEBUG_mode=false}
+
+### debug:mode [output | /output | verbose | /verbose] ... Usage:bbuild
+#
+# Activate debug output (`output`), or activate command tracing (`verbose`)
+#
+# Deactivate with the corresponding `/output` and `/verbose` options
+#
+###/doc
+
+function debug:mode() {
+    local mode_switch
+    for mode_switch in "$@"; do
+        case "$mode_switch" in
+        output)
+            DEBUG_mode=true ;;
+        /output)
+            DEBUG_mode=false ;;
+        verbose)
+            set -x ;;
+        /verbose)
+            set +x ;;
+        esac
+    done
+}
+
+### debug:print MESSAGE Usage:bbuild
+# print a blue debug message to stderr
+# only prints if DEBUG_mode is set to "true"
+###/doc
+function debug:print {
+    [[ "$DEBUG_mode" = true ]] || return 0
+    echo "${CBBLU}DEBUG: $CBLU$*$CDEF" 1>&2
+}
+
+### debug:dump [MARKER] Usage:bbuild
+#
+# Pipe the data coming through stdin to stdout (as if it weren't there at all)
+#
+# If debug mode is on, *also* write the same data to stderr, each line preceded by MARKER
+#
+# Insert this function into pipes to see their output when in debugging mode
+#
+#   sed -r 's/linux|unix/*NIX/gi' myfile.txt | debug:dump | lprint
+#
+# Or use this to mask a command's output unless in debug mode
+#
+#   which binary 2>&1 | debug:dump >/dev/null
+#
+###/doc
+function debug:dump {
+    if [[ "$DEBUG_mode" = true ]]; then
+        local MARKER="${1:-DEBUG: }"; shift || :
+
+        cat - | sed -r "s/^/$MARKER/" | tee -a /dev/stderr
+    else
+        cat -
+    fi
+}
+
+### debug:break MESSAGE Usage:bbuild
+#
+# Add break points to a script
+#
+# Requires `DEBUG_mode` set to true
+#
+# When the script runs, the message is printed with a prompt, and execution pauses.
+#
+# Press return to continue execution.
+#
+# Type a variable name, with leading `$`, to dump it, e.g. `$myvar`
+#
+# Type a variable name, with leading `$`, follwoed by an assignment to change its value, e.g. `$myvar=new value`
+#  the new value will be seen by the script.
+#
+# Type 'env' to dump the current environment variables.
+#
+# Type `exit`, `quit` or `stop` to stop the program. If the breakpoint is in a subshell,
+#  execution from after the subshell will be resumed.
+#
+###/doc
+
+function debug:break {
+    [[ "$DEBUG_mode" = true ]] || return 0
+    local reply
+
+    while true; do
+        read -p "${CRED}BREAKPOINT: $* >$CDEF " reply
+        if [[ "$reply" =~ quit|exit|stop ]]; then
+            echo "${CBRED}ABORT${CDEF}" >&2
+            exit 127
+
+        elif [[ "$reply" = env ]]; then
+            env |sed 's//^[/g' |debug:dump "--- "
+
+        elif [[ "$reply" =~ ^\$ ]]; then
+            debug:_break_dump "${reply:1}" || :
+
+        elif [[ -z "$reply" ]]; then
+            return 0
+        else
+            debug:print "'quit','exit' or 'stop' to abort; '\$varname' to see a variable's contents; '\$varname=new value' to assign a new value for run time; <Enter> to continue"
+        fi
+    done
+}
+
+debug:_break_dump() {
+    local inspectable="$1"
+    local varname="$1"
+    local varval
+
+    if [[ "$inspectable" =~ = ]]; then
+        varname="${inspectable%%=*}"
+        varval="${inspectable#*=}"
+    fi
+
+    [[ "$varname" =~ $PAT_cvar ]] || {
+        debug:print "${CRED}Invalid var name '$varname'"
+        return 1
+    }
+
+    declare -n inspect="$varname"
+
+    if [[ "$inspectable" =~ = ]]; then
+        inspect="$varval"
+    else
+        echo "$inspect"
+    fi
+}
 
 gits:local-help() {
     local section="$1"; shift
@@ -1003,23 +1174,23 @@ gits:checkout() {
 #
 # Clone a git URL, creating intermediary directories.
 #
-# If DIRECTORY is not specified:
-#
-# * URL is parsed assuming presence of a domain name - this is detected by a `user@domain` or `scheme://domain` pattern
-# * Group/user name and repo name are detected as being at the end of the URL as `name/repo(.git)?`
-#
-# The clone then creates directories `domain/name/repo` and clones to it.
-#
-# If DIRECTORY is specified:
+# If PATH is specified:
 #
 # All intermediary directories are created, then the clone is performed to that location.
+#
+# If PATH is not specified:
+#
+# * URL is parsed assuming presence of a domain name - this is detected by a `user@domain.tld` or `scheme://domain.tld` pattern
+# * Group/user name and repo name are detected as being at the end of the URL as `name/repo(.git)?`
+#
+# The clone then creates directories `domain.tld/name/repo` and clones to it.
 #
 ###/doc
 
 gits:clone:_dispatch() {
     . <(args:use:local ?url ?directory -- "$@") ; 
 
-    gits:local-help-no-empty clone "$url" "$@"
+    gits:local-help-noempty clone "$url" "$@"
 
     if [[ -z "$directory" ]]; then
         local domain user repo
@@ -1037,14 +1208,9 @@ gits:clone:_dispatch() {
 }
 
 gits:clone:get-components() {
-    . <(args:use:local v_domain v_user v_repo url -- "$@") ; 
-    local -n p_domain p_user p_repo
-    p_domain=$v_domain
-    p_user=$v_user
-    p_repo=$v_repo
-
-    p_domain="$(echo "$url"|sed -r -e 's#^([a-zA-Z0-9]+://)?([a-zA-Z0-9]+@)?##' -e 's#([^/:]+?).+#\1#')"
-    read p_user p_repo < <(echo "$url"|sed -r -e 's#.+[:/]([^/]+)/([^/]+)(\.git)?$#\1 \2#')
+    . <(args:use:local *pdomain *puser *prepo url -- "$@") ; 
+    pdomain="$(echo "$url"|sed -r -e 's#^([a-zA-Z0-9]+://)?([a-zA-Z0-9]+@)?##' -e 's#([^/:]+?).+#\1#')"
+    read puser prepo < <(echo "$url"|sed -r -e 's#.+[:/]([^/]+)/([^/]+)(\.git)?$#\1 \2#')
 }
 
 gits:clone:_valid-url() {
@@ -1565,30 +1731,6 @@ gits:push() {
 #
 ###/doc
 
-##bash-libs: patterns.sh @ 7b11e175 (2.0.3)
-
-### Useful patterns Usage:bbuild
-#
-# Some useful regex patterns, exported as environment variables.
-#
-# They are not foolproof, and you are encouraged to improve upon them.
-#
-# $PAT_blank - detects whether an entire line is empty or whitespace
-# $PAT_comment - detects whether is a line is a script comment (assumes '#' as the comment marker)
-# $PAT_num - detects whether the string is an integer number in its entirety
-# $PAT_cvar - detects if the string is a valid C variable name
-# $PAT_filename - detects if the string is a safe UNIX or Windows file name;
-#   does not allow presence of whitespace or special characters aside from '_', '.', '-'
-# $PAT_email - simple heuristic to determine whether a string looks like a valid email address
-#
-###/doc
-
-export PAT_blank='^\s*$'
-export PAT_comment='^\s*(#.*)?$'
-export PAT_num='^[0-9]+$'
-export PAT_cvar='^[a-zA-Z_][a-zA-Z0-9_]*$'
-export PAT_filename='^[a-zA-Z0-9_.-]$'
-export PAT_email="$PAT_filename@$PAT_filename.$PAT_cvar"
 
 gits:pull:_dispatch() {
     gits:local-help pull "$@"

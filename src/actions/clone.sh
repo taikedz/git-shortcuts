@@ -2,22 +2,22 @@
 #
 # Clone a git URL, creating intermediary directories.
 #
-# If DIRECTORY is not specified:
-#
-# * URL is parsed assuming presence of a domain name - this is detected by a `user@domain` or `scheme://domain` pattern
-# * Group/user name and repo name are detected as being at the end of the URL as `name/repo(.git)?`
-#
-# The clone then creates directories `domain/name/repo` and clones to it.
-#
-# If DIRECTORY is specified:
+# If PATH is specified:
 #
 # All intermediary directories are created, then the clone is performed to that location.
+#
+# If PATH is not specified:
+#
+# * URL is parsed assuming presence of a domain name - this is detected by a `user@domain.tld` or `scheme://domain.tld` pattern
+# * Group/user name and repo name are detected as being at the end of the URL as `name/repo(.git)?`
+#
+# The clone then creates directories `domain.tld/name/repo` and clones to it.
 #
 ###/doc
 
 $%function gits:clone:_dispatch(?url ?directory) {
 
-    gits:local-help-no-empty clone "$url" "$@"
+    gits:local-help-noempty clone "$url" "$@"
 
     if [[ -z "$directory" ]]; then
         local domain user repo
@@ -34,14 +34,9 @@ $%function gits:clone:_dispatch(?url ?directory) {
     gits:run clone "$url" "$domain/$user/$repo"
 }
 
-$%function gits:clone:get-components(v_domain v_user v_repo url) {
-    local -n p_domain p_user p_repo
-    p_domain=$v_domain
-    p_user=$v_user
-    p_repo=$v_repo
-
-    p_domain="$(echo "$url"|sed -r -e 's#^([a-zA-Z0-9]+://)?([a-zA-Z0-9]+@)?##' -e 's#([^/:]+?).+#\1#')"
-    read p_user p_repo < <(echo "$url"|sed -r -e 's#.+[:/]([^/]+)/([^/]+)(\.git)?$#\1 \2#')
+$%function gits:clone:get-components(*pdomain *puser *prepo url) {
+    pdomain="$(echo "$url"|sed -r -e 's#^([a-zA-Z0-9]+://)?([a-zA-Z0-9]+@)?##' -e 's#([^/:]+?).+#\1#')"
+    read puser prepo < <(echo "$url"|sed -r -e 's#.+[:/]([^/]+)/([^/]+)(\.git)?$#\1 \2#')
 }
 
 $%function gits:clone:_valid-url(url) {

@@ -9,6 +9,8 @@ GITS_software_version_message="(C) Tai Kedzierski, GPLv3. https://github.com/tai
 
 #%include std/autohelp.sh
 #%include std/out.sh
+#%include std/syntax-extensions.sh
+#%include std/debug.sh
 
 #%include modules.sh
 
