@@ -52,7 +52,7 @@ GITS_software_version_message="(C) Tai Kedzierski, GPLv3. https://github.com/tai
 ###/doc
 
 
-##bash-libs: tty.sh @ 69724119 (2.0)
+##bash-libs: tty.sh @ 7b11e175 (2.0.3)
 
 tty:is_ssh() {
     [[ -n "$SSH_TTY" ]] || [[ -n "$SSH_CLIENT" ]] || [[ "$SSH_CONNECTION" ]]
@@ -62,7 +62,7 @@ tty:is_pipe() {
     [[ ! -t 1 ]]
 }
 
-##bash-libs: colours.sh @ 69724119 (2.0)
+##bash-libs: colours.sh @ 7b11e175 (2.0.3)
 
 ### Colours for terminal Usage:bbuild
 # A series of shorthand colour flags for use in outputs, and functions to set your own flags.
@@ -215,7 +215,7 @@ colours:auto() {
 
 colours:auto
 
-##bash-libs: out.sh @ 69724119 (2.0)
+##bash-libs: out.sh @ 7b11e175 (2.0.3)
 
 ### Console output handlers Usage:bbuild
 #
@@ -302,7 +302,7 @@ function out:fail {
 function out:error {
     echo "${CBRED}ERROR: ${CRED}$*$CDEF" 1>&2
 }
-##bash-libs: syntax-extensions.sh @ 69724119 (2.0)
+##bash-libs: syntax-extensions.sh @ 7b11e175 (2.0.3)
 
 ### Syntax Extensions Usage:syntax
 #
@@ -415,7 +415,7 @@ args:use:local() {
     syntax-extensions:use:local "$@"
 }
 
-##bash-libs: autohelp.sh @ 69724119 (2.0)
+##bash-libs: autohelp.sh @ 7b11e175 (2.0.3)
 
 ### Autohelp Usage:bbuild
 #
@@ -684,7 +684,7 @@ gits:pager() {
     "$@"
     unset GITS_use_less_internal
 }
-##bash-libs: readkv.sh @ 69724119 (2.0)
+##bash-libs: readkv.sh @ 7b11e175 (2.0.3)
 
 ### Key Value Pair Reader Usage:bbuild
 #
@@ -746,7 +746,7 @@ function readkv:require {
 readkv:meaningful_data() {
     grep -v -P '^\s*(#.*)?$' "$1"
 }
-##bash-libs: ensureline.sh @ 69724119 (2.0)
+##bash-libs: ensureline.sh @ 7b11e175 (2.0.3)
 
 ### ensureline Usage:bbuild
 #
@@ -1052,7 +1052,7 @@ gits:clone:_valid-url() {
     ( [[ ! "$url" =~ \.\. ]] && ([[ "$url" =~ ^[a-z]+://[a-z] ]] || [[ "$url" =~ [a-zA-Z0-9_]+@[a-zA-Z] ]]) ) || out:fail "Invalid URL requested"
 }
 
-##bash-libs: askuser.sh @ 69724119 (2.0)
+##bash-libs: askuser.sh @ 7b11e175 (2.0.3)
 
 ### askuser Usage:bbuild
 # Present the user with questions on stderr
@@ -1346,7 +1346,7 @@ gits:log() {
 
     gits:pager gits:run log "${options[@]}" "$@"
 }
-##bash-libs: varify.sh @ 69724119 (2.0)
+##bash-libs: varify.sh @ 7b11e175 (2.0.3)
 
 ### Varify Usage:bbuild
 # Make a string into a valid variable name or file name
@@ -1565,7 +1565,7 @@ gits:push() {
 #
 ###/doc
 
-##bash-libs: patterns.sh @ 69724119 (2.0)
+##bash-libs: patterns.sh @ 7b11e175 (2.0.3)
 
 ### Useful patterns Usage:bbuild
 #
@@ -1660,278 +1660,8 @@ gits:pull:backtrack() {
 
     gits:run pull
 }
-### gits gc Usage:help-gc
-#
-# Remove all git commits and data that cannot be reached anymore.
-#
-###/doc
 
-gits:gc-full() {
-    gits:local-help gc "$@"
-
-    gits:run -c gc.reflogExpire=0 \
-        -c gc.reflogExpireUnreachable=0 \
-        -c gc.rerereresolved=0 \
-        -c gc.rerereunresolved=0 \
-        -c gc.pruneExpire=now \
-        gc
-}
-### gits branch [all] Usage:help-branch
-#
-# Show information about the current branch, or all branches
-#
-###/doc
-
-gits:branch:show-upstream() {
-    local info
-    info="$(gits:run status -sb|grep -oP '^## \K.+'|sed 's/\.\.\./ --> /')"
-
-    if echo "$info"|grep -o ' --> ' -q ; then
-        echo "$info"
-    else
-        echo "$info --> (none)"
-    fi
-}
-
-gits:branch:show-all() {
-    gits:run branch -vv
-}
-
-gits:branch:_dispatch() {
-    gits:local-help branch "$@"
-
-    if [[ -z "$*" ]]; then
-        gits:branch:show-upstream
-        exit
-    fi
-
-    case "$1" in
-    all)
-        gits:branch:show-all
-        ;;
-    *)
-        out:fail "Unknown 'branch' sub-operation '$1'"
-        ;;
-    esac
-}
-
-gits:branch:_list_all() {
-    (git branch -r --no-color; git branch --no-color)|sed -r 's/^[ *]*//'
-}
-
-gits:branch:_exists() {
-    . <(args:use:local branch -- "$@") ; 
-    gits:branch:_list_all | grep -qP "^$branch$"
-}
-gits:clean() {
-    git clean -dfx
-}
-##bash-libs: git.sh @ 69724119 (2.0)
-
-### Git handlers Usage:bbuild
-#
-# Some handler functions wrapping git, for automation scripts that pull/update git repositories.
-#
-###/doc
-
-### git:ensure URL [DIRPATH] Usage:bbuild
-#
-# Clone a repository, optionally to a directory path or ./<reponame> when none specified
-#
-# If a repository already exists here, check that the URL matches at least one remote,
-#   if so, update
-#   if not, return error
-#
-# Error codes used
-# 10 - no URL
-# 11 - directory exists, and is not a git repo
-# 12 - directory exists, but the specified URL was not among the remotes
-#
-###/doc
-
-git:clone() {
-    local url dirpath reponame
-    url="${1:-}"; shift || :
-    [[ -n "$url" ]] || return 10
-
-    reponame="$(basename "$url")"
-    reponame="${reponame%*.git}"
-
-    dirpath="${1:-./$reponame}"
-
-    [[ -d "$dirpath" ]] || {
-        git clone "$url" "$dirpath"
-        return "$?"
-    }
-
-    [[ -d "$dirpath/.git" ]] || {
-        return 11
-    }
-
-    ( cd "$dirpath" ; git remote -v | grep "$url" -q ) || {
-        return 12
-    }
-
-    ( cd "$dirpath" ; git:update master )
-}
-
-### git:update [BRANCH [REMOTE] ] Usage:bbuild
-#
-# Check out a branch (default master), stashing if needed, and pull the latest changes from remote (default origin)
-#
-# 10 - Untracked files present; cannot stash, cannot pull
-# 11 - stash failed
-# 12 - no remotes
-#
-###/doc
-
-git:update() {
-    local status_string branch remote
-
-    branch="${1:-master}"; shift || :
-    remote="${1:-origin}"; shift || :
-
-    [[ $(git remote -v | wc -l | cut -d' ' -f2) -gt 0 ]] || return 12
-
-    status_string="$(git status)"
-    if ! ( echo "$status_string" | grep "working tree clean" -iq ) ; then
-        if echo "$status_string" | grep -e "^Untracked files:" -q ; then return 10 ; fi
-
-        git stash || return 11
-    fi
-
-    git pull "$remote" "$branch" || return 12
-}
-
-### git:last_tagged_version Usage:bbuild
-#
-# Look through history of the current branch and find the latest version tag
-#
-# If a version is found, that version is echoed, with a prefix:
-#
-# * "=" if the current commit is tagged with the latest version found
-# * ">" if the current commit is later than the latest version found
-#
-# If no version is round, returns with status 1
-#
-###/doc
-
-git:last_tagged_version() {
-    local tagpat='(?<=tag: )([vV]\.?)?[0-9.]+'
-    local tagged_version
-    tagged_version="$(git log --oneline -n 1 --format="%d" | grep -oP "$tagpat")" || :
-
-    if [[ -z "$tagged_version" ]]; then
-        tagged_version="$(git log --format="%d"|grep -vP '^\s*$' | grep -oP "$tagpat" -m 1)" || :
-        if [[ -z "$tagged_version" ]]; then
-            return 1
-        fi
-
-        tagged_version=">$tagged_version"
-    else
-        tagged_version="=$tagged_version"
-    fi
-
-    echo "$tagged_version"
-}
-
-##bash-libs: version.sh @ 69724119 (2.0)
-
-### Version Tool Usage:bbuild
-#
-# Functions for handling version numbers.
-#
-# We assume sem-ver versioning, consisting of
-#
-# 	x.y.z
-#
-# where `x` is more significant than `y`, more significant in turn than `z`
-#
-# All parts must be present. If comparing a version string "2.3", write it as "2.3.0"
-#
-###/doc
-
-### version:gt VERSIONSTRING1 VERSIONSTRING2 Usage:bbuild
-#
-# Returns 0 if VERSIONSTRING1 is strictly greater than VERSIONSTRING2
-#
-###/doc
-
-version:gt() {
-    local version1="$1"; shift || :
-    local version2="$1"; shift || :
-
-    version1="$(version:validate "$version1")" || return 1
-    version2="$(version:validate "$version2")" || return 1
-
-    read v1x v1y v1z < <(echo "$version1"|sed 's/\./ /g')
-    read v2x v2y v2z < <(echo "$version2"|sed 's/\./ /g')
-
-    # if lesser fail, if greater succeed, if equal, check minor
-    [[ "$v1x" -gt "$v2x" ]] && return 0 || :
-    [[ "$v1x" -lt "$v2x" ]] && return 1 || :
-
-    [[ "$v1y" -gt "$v2y" ]] && return 0 || :
-    [[ "$v1y" -lt "$v2y" ]] && return 1 || :
-
-    # At this point, equality of the patch version is also a disqualifier.
-    [[ "$v1z" -gt "$v2z" ]] && return 0 || :
-    [[ "$v1z" -le "$v2z" ]] && return 1 || :
-
-}
-
-### version:next {major|minor|patch} VERSIONSTRING Usage:bbuild
-#
-# Bump the relevant version number.
-#
-###/doc
-
-version:next() {
-    local vsection="$1"; shift || :
-    local sversion="$1"; shift || :
-
-    version="$(version:validate "$sversion")" || return 1
-
-    read vx vy vz < <(echo "$sversion"|sed 's/\./ /g')
-
-    case "$vsection" in
-    major)
-        vx=$((vx+1))
-        vy=0
-        vz=0
-        ;;
-    minor)
-        vy=$((vy+1))
-        vz=0
-        ;;
-    patch)
-        vz=$((vz+1)) ;;
-    *)
-        return 1
-        ;;
-    esac
-
-    echo "${vx}.${vy}.${vz}"
-    return 0
-}
-
-version:validate() {
-    . <(args:use:local version -- "$@") ; 
-    if [[ "$version" =~ ^[0-9]+$ ]]; then
-        echo "${version}.0.0"
-
-    elif [[ "$version" =~ ^[0-9]+\.[0-9]+$ ]]; then
-        echo "${version}.0"
-
-    elif [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-        echo "$version"
-
-    else
-        return 1
-    fi
-}
-
-##bash-libs: args.sh @ 69724119 (2.0)
+##bash-libs: args.sh @ 7b11e175 (2.0.3)
 
 ### args Usage:bbuild
 #
@@ -2070,6 +1800,293 @@ args:after() {
     done
 
     RETARR_ARGSAFTER=("$@")
+}
+
+### gits gc [-F|--no-fetch] [-P|--no-prune] Usage:help-gc
+#
+# Eager garbage cleaning function.
+#
+# * Fetches remote metadata (unless --no-fetch/-F specified)
+# * Prunes cached remote branches no longer on remote (unless --no-pruner/-P specified)
+# * Removes all commits and data that cannot be reached anymore
+#
+###/doc
+
+gits:gc-full() {
+    local remote
+
+    gits:local-help gc "$@"
+
+    if ! args:has "--no-fetch" "$@" && ! args:has "-F" "$@"; then
+        gits:run fetch
+    fi
+
+    if ! args:has "--no-prune" "$@" && ! args:has "-P" "$@"; then
+        git remote | while read remote; do
+            gits:run remote prune "$remote"
+        done
+    fi
+
+    gits:run -c gc.reflogExpire=0 \
+        -c gc.reflogExpireUnreachable=0 \
+        -c gc.rerereresolved=0 \
+        -c gc.rerereunresolved=0 \
+        -c gc.pruneExpire=now \
+        gc
+}
+### gits branch [all] Usage:help-branch
+#
+# Show information about the current branch, or all branches
+#
+###/doc
+
+gits:branch:show-upstream() {
+    local info
+    info="$(gits:run status -sb|grep -oP '^## \K.+'|sed 's/\.\.\./ --> /')"
+
+    if echo "$info"|grep -o ' --> ' -q ; then
+        echo "$info"
+    else
+        echo "$info --> (none)"
+    fi
+}
+
+gits:branch:show-all() {
+    gits:run branch -vv
+}
+
+gits:branch:_dispatch() {
+    gits:local-help branch "$@"
+
+    if [[ -z "$*" ]]; then
+        gits:branch:show-upstream
+        exit
+    fi
+
+    case "$1" in
+    all)
+        gits:branch:show-all
+        ;;
+    *)
+        out:fail "Unknown 'branch' sub-operation '$1'"
+        ;;
+    esac
+}
+
+gits:branch:_list_all() {
+    (git branch -r --no-color; git branch --no-color)|sed -r 's/^[ *]*//'
+}
+
+gits:branch:_exists() {
+    . <(args:use:local branch -- "$@") ; 
+    gits:branch:_list_all | grep -qP "^$branch$"
+}
+gits:clean() {
+    git clean -dfx
+}
+##bash-libs: git.sh @ 7b11e175 (2.0.3)
+
+### Git handlers Usage:bbuild
+#
+# Some handler functions wrapping git, for automation scripts that pull/update git repositories.
+#
+###/doc
+
+### git:ensure URL [DIRPATH] Usage:bbuild
+#
+# Clone a repository, optionally to a directory path or ./<reponame> when none specified
+#
+# If a repository already exists here, check that the URL matches at least one remote,
+#   if so, update
+#   if not, return error
+#
+# Error codes used
+# 10 - no URL
+# 11 - directory exists, and is not a git repo
+# 12 - directory exists, but the specified URL was not among the remotes
+#
+###/doc
+
+git:clone() {
+    local url dirpath reponame
+    url="${1:-}"; shift || :
+    [[ -n "$url" ]] || return 10
+
+    reponame="$(basename "$url")"
+    reponame="${reponame%*.git}"
+
+    dirpath="${1:-./$reponame}"
+
+    [[ -d "$dirpath" ]] || {
+        git clone "$url" "$dirpath"
+        return "$?"
+    }
+
+    [[ -d "$dirpath/.git" ]] || {
+        return 11
+    }
+
+    ( cd "$dirpath" ; git remote -v | grep "$url" -q ) || {
+        return 12
+    }
+
+    ( cd "$dirpath" ; git:update master )
+}
+
+### git:update [BRANCH [REMOTE] ] Usage:bbuild
+#
+# Check out a branch (default master), stashing if needed, and pull the latest changes from remote (default origin)
+#
+# 10 - Untracked files present; cannot stash, cannot pull
+# 11 - stash failed
+# 12 - no remotes
+#
+###/doc
+
+git:update() {
+    local status_string branch remote
+
+    branch="${1:-master}"; shift || :
+    remote="${1:-origin}"; shift || :
+
+    [[ $(git remote -v | wc -l | cut -d' ' -f2) -gt 0 ]] || return 12
+
+    status_string="$(git status)"
+    if ! ( echo "$status_string" | grep "working tree clean" -iq ) ; then
+        if echo "$status_string" | grep -e "^Untracked files:" -q ; then return 10 ; fi
+
+        git stash || return 11
+    fi
+
+    git pull "$remote" "$branch" || return 12
+}
+
+### git:last_tagged_version Usage:bbuild
+#
+# Look through history of the current branch and find the latest version tag
+#
+# If a version is found, that version is echoed, with a prefix:
+#
+# * "=" if the current commit is tagged with the latest version found
+# * ">" if the current commit is later than the latest version found
+#
+# If no version is round, returns with status 1
+#
+###/doc
+
+git:last_tagged_version() {
+    local tagpat='(?<=tag: )([vV]\.?)?[0-9.]+'
+    local tagged_version
+    tagged_version="$(git log --oneline -n 1 --format="%d" | grep -oP "$tagpat")" || :
+
+    if [[ -z "$tagged_version" ]]; then
+        tagged_version="$(git log --format="%d"|grep -vP '^\s*$' | grep -oP "$tagpat" -m 1)" || :
+        if [[ -z "$tagged_version" ]]; then
+            return 1
+        fi
+
+        tagged_version=">$tagged_version"
+    else
+        tagged_version="=$tagged_version"
+    fi
+
+    echo "$tagged_version"
+}
+
+##bash-libs: version.sh @ 7b11e175 (2.0.3)
+
+### Version Tool Usage:bbuild
+#
+# Functions for handling version numbers.
+#
+# We assume sem-ver versioning, consisting of
+#
+# 	x.y.z
+#
+# where `x` is more significant than `y`, more significant in turn than `z`
+#
+# All parts must be present. If comparing a version string "2.3", write it as "2.3.0"
+#
+###/doc
+
+### version:gt VERSIONSTRING1 VERSIONSTRING2 Usage:bbuild
+#
+# Returns 0 if VERSIONSTRING1 is strictly greater than VERSIONSTRING2
+#
+###/doc
+
+version:gt() {
+    local version1="$1"; shift || :
+    local version2="$1"; shift || :
+
+    version1="$(version:validate "$version1")" || return 1
+    version2="$(version:validate "$version2")" || return 1
+
+    read v1x v1y v1z < <(echo "$version1"|sed 's/\./ /g')
+    read v2x v2y v2z < <(echo "$version2"|sed 's/\./ /g')
+
+    # if lesser fail, if greater succeed, if equal, check minor
+    [[ "$v1x" -gt "$v2x" ]] && return 0 || :
+    [[ "$v1x" -lt "$v2x" ]] && return 1 || :
+
+    [[ "$v1y" -gt "$v2y" ]] && return 0 || :
+    [[ "$v1y" -lt "$v2y" ]] && return 1 || :
+
+    # At this point, equality of the patch version is also a disqualifier.
+    [[ "$v1z" -gt "$v2z" ]] && return 0 || :
+    [[ "$v1z" -le "$v2z" ]] && return 1 || :
+
+}
+
+### version:next {major|minor|patch} VERSIONSTRING Usage:bbuild
+#
+# Bump the relevant version number.
+#
+###/doc
+
+version:next() {
+    local vsection="$1"; shift || :
+    local sversion="$1"; shift || :
+
+    version="$(version:validate "$sversion")" || return 1
+
+    read vx vy vz < <(echo "$sversion"|sed 's/\./ /g')
+
+    case "$vsection" in
+    major)
+        vx=$((vx+1))
+        vy=0
+        vz=0
+        ;;
+    minor)
+        vy=$((vy+1))
+        vz=0
+        ;;
+    patch)
+        vz=$((vz+1)) ;;
+    *)
+        return 1
+        ;;
+    esac
+
+    echo "${vx}.${vy}.${vz}"
+    return 0
+}
+
+version:validate() {
+    . <(args:use:local version -- "$@") ; 
+    if [[ "$version" =~ ^[0-9]+$ ]]; then
+        echo "${version}.0.0"
+
+    elif [[ "$version" =~ ^[0-9]+\.[0-9]+$ ]]; then
+        echo "${version}.0"
+
+    elif [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        echo "$version"
+
+    else
+        return 1
+    fi
 }
 
 ### version (ls|bump KEYWORD) Usage:help-version

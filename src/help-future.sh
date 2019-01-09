@@ -1,13 +1,5 @@
 # Still to implement:
 # 
-# Bump version
-#
-# +++++++++++
-# Check past tags along the master branch for semver version numbers (disallow performing task on any branch other than master by default)
-# allow a command to optionally bump "major", "minor" or "bugfix" and add the appropriate tag
-#
-#   gits vbump (major|minor|bugfix) [ANNOTATION]
-#
 # +++++++++++
 # Modify remote - if the URL starts with '%' then it is a substitution
 # the first character after `%` defines the pattern separator
