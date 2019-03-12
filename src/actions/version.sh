@@ -1,4 +1,4 @@
-#%include std/git.sh
+#%include app/git.sh
 #%include std/version.sh
 #%include std/args.sh
 
