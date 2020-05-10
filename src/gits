@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-GITS_software_version="1.2.1"
+GITS_software_version="1.3.0"
 GITS_software_version_message="(C) Tai Kedzierski, GPLv3. https://github.com/taikedz/git-shortcuts"
 
 #%include help.sh
@@ -28,6 +28,9 @@ gits:main() {
     }
 
     case "$action" in
+    native|ntv) # An explicit passthru, in case we do not want the git-shortcuts built-in handler to process the command
+        gits:passthru:run "$action" "$@"
+        ;;
     --help)
         autohelp:print
         exit 0
@@ -85,7 +88,11 @@ gits:main() {
         gits:version:_dispatch "$@"
         ;;
     *)
-        gits:diff "$action" "$@"
+        if gits:passthru:check "$action"; then
+            gits:passthru:run "$action" "$@"
+        else
+            gits:diff "$action" "$@" # Assume "$action" is also a file to be diffed
+        fi
         ;;
     esac
 }

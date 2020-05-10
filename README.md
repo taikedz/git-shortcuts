@@ -1,12 +1,10 @@
 # Git Shortcuts
 
-A utility to help with long-winded git commands.
-
-A clean-slate implementation after re-thinking what [`git-newbie`](https://github.com/taikedz/git-newbie) was trying to do.
-
-Git has quite a few long-winded commands that are frequently useful, and some common activities can be sped-up a little.
+A utility to help with long-winded git commands that are frequently useful (and so frequently typed), and some common activities can be sped-up a little.
 
 This tool can either be used to run commands using shorthands, or just to provide reminders, letting you type them yourself (learn by doing!)
+
+You can re-alias your git command to gits: `alias git=gits`. This will still allow aut-complete to work. Any commands not implemented in `gits` will simply pass through to the native git command.
 
 ## Features
 
@@ -25,7 +23,7 @@ Do a fetch/status check
 
     $ gits fs
 
-See diffs, always in colour (set `GIT_use_less=0` in your environment to view in `less` pager)
+See diffs, always in colour (set `GIT_use_less_ms=0` in your environment to view in `less` pager)
 
     $ gits file1 file2 file3
 

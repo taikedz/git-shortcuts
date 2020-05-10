@@ -47,7 +47,7 @@ gits:run() {
     echo "$CDEF" >&2
 
     if gits:use_less; then
-        sleep "$GITS_use_less"
+        sleep "$GITS_use_less_ms"
     fi
 
     if [[ "${GITS_no_execute:-}" != true ]]; then
@@ -60,11 +60,12 @@ gits:run() {
 }
 
 gits:use_less() {
-    [[ "${GITS_use_less:-}" =~ ^[0-9.]+$ ]] && [[ "${GITS_use_less_internal:-}" = true ]]
+    #GITS_use_less_ms denotes the time to sleep before invoking the pager
+    [[ "${GITS_use_less_ms:-}" =~ ^[0-9.]+$ ]] && [[ "${GITS_pager_wrapping_on:-}" = true ]]
 }
 
 gits:pager() {
-    GITS_use_less_internal=true
+    GITS_pager_wrapping_on=true
     "$@"
-    unset GITS_use_less_internal
+    unset GITS_pager_wrapping_on
 }
