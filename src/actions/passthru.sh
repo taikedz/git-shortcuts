@@ -16,6 +16,7 @@ GITS_PASSTHRU_COMMANDS=(
     bisect
     grep
     show
+    merge
 #    rebase
     tag
     fetch
