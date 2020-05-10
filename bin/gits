@@ -1143,6 +1143,7 @@ GITS_PASSTHRU_COMMANDS=(
     bisect
     grep
     show
+    merge
 #    rebase
     tag
     fetch
@@ -2785,7 +2786,7 @@ gits:main() {
 
     case "$action" in
     native|ntv) # An explicit passthru, in case we do not want the git-shortcuts built-in handler to process the command
-        gits:passthru:run "$action" "$@"
+        gits:passthru:run "$@"
         ;;
     --help)
         autohelp:print
