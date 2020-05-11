@@ -21,6 +21,7 @@ GITS_PASSTHRU_COMMANDS=(
     tag
     fetch
     init
+    stash
 )
 
 $%function gits:passthru:check(keyword) {
