@@ -20,6 +20,7 @@ GITS_PASSTHRU_COMMANDS=(
 #    rebase
     tag
     fetch
+    init
 )
 
 $%function gits:passthru:check(keyword) {
