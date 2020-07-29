@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-GITS_software_version="1.3.0"
+GITS_software_version="1.3.1"
 GITS_software_version_message="(C) Tai Kedzierski, GPLv3. https://github.com/taikedz/git-shortcuts"
 
 
@@ -58,7 +58,7 @@ GITS_software_version_message="(C) Tai Kedzierski, GPLv3. https://github.com/tai
 
 
 
-##bash-libs: syntax-extensions.sh @ 319fa210 (2.1.19)
+##bash-libs: syntax-extensions.sh @ de7210ba (2.1.21.3)
 
 ### Syntax Extensions Usage:syntax
 #
@@ -179,7 +179,7 @@ syntax-extensions:use:local() {
 args:use:local() {
     syntax-extensions:use:local "$@"
 }
-##bash-libs: tty.sh @ 319fa210 (2.1.19)
+##bash-libs: tty.sh @ de7210ba (2.1.21.3)
 
 ### tty.sh Usage:bbuild
 # Get information on the current terminal session.
@@ -209,7 +209,7 @@ tty:is_multiplexer() {
     [[ -n "${TMUX:-}" ]] || [[ "${TERM:-}" = screen ]]
 }
 
-##bash-libs: colours.sh @ 319fa210 (2.1.19)
+##bash-libs: colours.sh @ de7210ba (2.1.21.3)
 
 ### Colours for terminal Usage:bbuild
 # A series of shorthand colour flags for use in outputs, and functions to set your own flags.
@@ -393,7 +393,7 @@ colours:auto() {
 
 colours:auto
 
-##bash-libs: out.sh @ 319fa210 (2.1.19)
+##bash-libs: out.sh @ de7210ba (2.1.21.3)
 
 ### Console output handlers Usage:bbuild
 #
@@ -480,7 +480,7 @@ function out:fail {
 function out:error {
     echo "${CBRED}ERROR: ${CRED}$*$CDEF" 1>&2
 }
-##bash-libs: patterns.sh @ 319fa210 (2.1.19)
+##bash-libs: patterns.sh @ de7210ba (2.1.21.3)
 
 ### Useful patterns Usage:bbuild
 #
@@ -531,7 +531,11 @@ format:columns() {
     . <(args:use:local ?sep -- "$@") ; 
     [[ -n "$sep" ]] || sep=$'\t'
 
-    column -t -s "$sep"
+    if tty:is_pipe; then
+        cat -
+    else
+        column -t -s "$sep"
+    fi
 }
 
 ### format:wrap Usage:bbuild
@@ -547,12 +551,17 @@ format:columns() {
 
 format:wrap() {
     . <(args:use:local ?cols -- "$@") ; 
-    [[ -n "$cols" ]] || cols="$(tput cols)"
     [[ "$cols" =~ $PAT_num ]] || return 1
-    fold -w "$cols" -s
+
+    if tty:is_pipe; then
+        cat -
+    else
+        [[ -n "$cols" ]] || cols="$(tput cols)"
+        fold -w "$cols" -s
+    fi
 }
 
-##bash-libs: autohelp.sh @ 319fa210 (2.1.19)
+##bash-libs: autohelp.sh @ de7210ba (2.1.21.3)
 
 ### Autohelp Usage:bbuild
 #
@@ -749,7 +758,7 @@ autohelp:check:section() {
     done
 }
 
-##bash-libs: debug.sh @ 319fa210 (2.1.19)
+##bash-libs: debug.sh @ de7210ba (2.1.21.3)
 
 ### Debug lib Usage:bbuild
 #
@@ -943,7 +952,7 @@ gits:pager() {
     "$@"
     unset GITS_pager_wrapping_on
 }
-##bash-libs: readkv.sh @ 319fa210 (2.1.19)
+##bash-libs: readkv.sh @ de7210ba (2.1.21.3)
 
 #%bbtags w:deprecated w:use/std/config.sh
 
@@ -1007,7 +1016,7 @@ function readkv:require {
 readkv:meaningful_data() {
     grep -v -P '^\s*(#.*)?$' "$1"
 }
-##bash-libs: ensureline.sh @ 319fa210 (2.1.19)
+##bash-libs: ensureline.sh @ de7210ba (2.1.21.3)
 
 ### ensureline Usage:bbuild
 #
@@ -1143,7 +1152,6 @@ GITS_PASSTHRU_COMMANDS=(
     bisect
     grep
     show
-    merge
 #    rebase
     tag
     fetch
@@ -1346,7 +1354,7 @@ gits:clone:_valid-url() {
     ( [[ ! "$url" =~ \.\. ]] && ([[ "$url" =~ ^[a-z]+://[a-z] ]] || [[ "$url" =~ [a-zA-Z0-9_]+@[a-zA-Z] ]]) ) || out:fail "Invalid URL requested"
 }
 
-##bash-libs: askuser.sh @ 319fa210 (2.1.19)
+##bash-libs: askuser.sh @ de7210ba (2.1.21.3)
 
 ### askuser Usage:bbuild
 # Present the user with questions on stderr
@@ -1542,7 +1550,7 @@ gits:commit() {
     if [[ -n "${GITS_profile_switch:-}" ]]; then
         configname="$(git config user.name)"
         configmail="$(git config user.email)"
-        gits:profiles:save temp "$configname" "$configmail"
+        gits:profiles:save _temp "$configname" "$configmail"
         gits:profiles:apply "$GITS_profile_switch"
     fi
 
@@ -1550,11 +1558,12 @@ gits:commit() {
 
     if [[ -n "${GITS_profile_switch:-}" ]]; then
         gits:commit:profile-restore
+        gits:profiles:delete _temp
     fi
 }
 
 gits:commit:profile-restore() {
-    gits:profiles:apply temp
+    gits:profiles:apply _temp
 }
 
 gits:commit:check_master() {
@@ -1640,7 +1649,7 @@ gits:log() {
 
     gits:pager gits:run log "${options[@]}" "$@"
 }
-##bash-libs: varify.sh @ 319fa210 (2.1.19)
+##bash-libs: varify.sh @ de7210ba (2.1.21.3)
 
 ### Varify Usage:bbuild
 # Make a string into a valid variable name or file name
@@ -1931,7 +1940,7 @@ gits:pull:backtrack() {
     gits:run pull
 }
 
-##bash-libs: strings.sh @ 319fa210 (2.1.19)
+##bash-libs: strings.sh @ de7210ba (2.1.21.3)
 
 ### Strings library Usage:bbuild
 #
@@ -2044,7 +2053,7 @@ strings:split:escaping() {
     p__target=("${p__target[@]:1}")
 }
 
-##bash-libs: args.sh @ 319fa210 (2.1.19)
+##bash-libs: args.sh @ de7210ba (2.1.21.3)
 
 ### args Usage:bbuild
 #
@@ -2415,7 +2424,7 @@ gits:branch:_exists() {
 gits:clean() {
     git clean -dfx
 }
-##bash-libs: app/git.sh @ 319fa210 (2.1.19)
+##bash-libs: app/git.sh @ de7210ba (2.1.21.3)
 
 ### Git handlers Usage:bbuild
 #
@@ -2524,7 +2533,7 @@ git:last_tagged_version() {
     echo "$tagged_version"
 }
 
-##bash-libs: version.sh @ 319fa210 (2.1.19)
+##bash-libs: version.sh @ de7210ba (2.1.21.3)
 
 ### Version Tool Usage:bbuild
 #

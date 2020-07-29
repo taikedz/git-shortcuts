@@ -70,7 +70,7 @@ gits:commit() {
     if [[ -n "${GITS_profile_switch:-}" ]]; then
         configname="$(git config user.name)"
         configmail="$(git config user.email)"
-        gits:profiles:save temp "$configname" "$configmail"
+        gits:profiles:save _temp "$configname" "$configmail"
         gits:profiles:apply "$GITS_profile_switch"
     fi
 
@@ -78,11 +78,12 @@ gits:commit() {
 
     if [[ -n "${GITS_profile_switch:-}" ]]; then
         gits:commit:profile-restore
+        gits:profiles:delete _temp
     fi
 }
 
 gits:commit:profile-restore() {
-    gits:profiles:apply temp
+    gits:profiles:apply _temp
 }
 
 gits:commit:check_master() {
