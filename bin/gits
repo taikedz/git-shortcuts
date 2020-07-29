@@ -1617,30 +1617,24 @@ gits:log() {
     local options=(--color --decorate=short)
     local add_short=true
 
-    if [[ "${1:-}" = graph ]] || [[ "${1:-}" = -g ]]; then
-        options+=(--graph --all)
-        shift
-
-    fi
-
     for arg in "$@"; do
-    case "$arg" in
-    files|-f)
-        options+=(--name-only)
-        shift
-        ;;
-    graph|-g)
-        options+=(--graph --all)
-        shift
-        ;;
-    long|-l)
-        add_short=false
-        shift
-        ;;
-    *)
-        break
-        ;;
-    esac
+        case "$arg" in
+        files|-f)
+            options+=(--name-only)
+            shift
+            ;;
+        graph|-g)
+            options+=(--graph --all)
+            shift
+            ;;
+        long|-l)
+            add_short=false
+            shift
+            ;;
+        *)
+            break
+            ;;
+        esac
     done
 
     if [[ "$add_short" = true ]]; then
