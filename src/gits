@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-GITS_software_version="1.3.1"
+GITS_software_version="1.3.2"
 GITS_software_version_message="(C) Tai Kedzierski, GPLv3. https://github.com/taikedz/git-shortcuts"
 
 #%include help.sh

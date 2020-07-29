@@ -71,7 +71,9 @@ gits:profiles:delete() {
 
     [[ -f "$profilef" ]] || out:fail "No such profile '$profilename'"
 
-    askuser:confirm "Delete '$profilename'?" || return
+    if [[ "$GITS_no_ask_profile_delte" != true ]]; then
+        askuser:confirm "Delete '$profilename'?" || return
+    fi
     rm "$profilef"
 }
 

@@ -78,6 +78,8 @@ gits:commit() {
 
     if [[ -n "${GITS_profile_switch:-}" ]]; then
         gits:commit:profile-restore
+
+        GITS_no_ask_profile_delte=true
         gits:profiles:delete _temp
     fi
 }

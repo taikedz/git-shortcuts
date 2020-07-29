@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-GITS_software_version="1.3.1"
+GITS_software_version="1.3.2"
 GITS_software_version_message="(C) Tai Kedzierski, GPLv3. https://github.com/taikedz/git-shortcuts"
 
 
@@ -1558,6 +1558,8 @@ gits:commit() {
 
     if [[ -n "${GITS_profile_switch:-}" ]]; then
         gits:commit:profile-restore
+
+        GITS_no_ask_profile_delte=true
         gits:profiles:delete _temp
     fi
 }
@@ -1760,7 +1762,9 @@ gits:profiles:delete() {
 
     [[ -f "$profilef" ]] || out:fail "No such profile '$profilename'"
 
-    askuser:confirm "Delete '$profilename'?" || return
+    if [[ "$GITS_no_ask_profile_delte" != true ]]; then
+        askuser:confirm "Delete '$profilename'?" || return
+    fi
     rm "$profilef"
 }
 
