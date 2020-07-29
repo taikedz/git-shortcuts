@@ -58,21 +58,22 @@ See the full log graph, in colour, with decorations, in oneline mode
 Save and apply different profiles
 
     # One-time setup
-    $ gits profile save coder "Coder Name" "coder@site.net"
+    $ gits profile save pro "Professional Name" "coder@site.net"
+    $ gits profile save user2 "ThatGit" "git@large.net"
 
-    $ gits profile apply coder
+    $ gits profile apply pro
 
     $ gits profile
     Current config:
-      Name:  Tai Kedzierski
-      Email: dch.tai@gmail.com
+      Name:  Professional Name
+      Email: coder@site.net
 
 Commit with an alternate profile
 
     $ gits . -m/user2
 
     # sets user2's details in `config user.name` and `config user.email`,
-    #  commits
+    #  commits,
     #  then reverts
 
 
@@ -80,6 +81,6 @@ Commit with an alternate profile
 
 # Contributing
 
-This tool is written using [Bash Builder](https://github.com/taikedz/bash-builder). You are welcome to contribute changes and additional features you think would be helpful.
+This tool is written using [Bash Builder](https://gitlab.com/taikedz/bash-builder). You are welcome to contribute changes and additional features you think would be helpful.
 
 The specific goals of Git Shortcuts is to provide a tool that provides short-hand ways of performing long-winded tasks or inconveniently lengthy commands.
