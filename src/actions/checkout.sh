@@ -21,7 +21,7 @@
 $%function gits:checkout(?target) {
 
     if [[ -z "$target" ]]; then
-        gits:run checkout master
+        gits:run checkout "$(gits:prefs:get mastername)"
         return
     fi
 

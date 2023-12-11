@@ -9,6 +9,7 @@
 #%include actions/clone.sh
 #%include actions/commit.sh
 #%include actions/log.sh
+#%include actions/master.sh
 #%include actions/profiles.sh
 #%include actions/push.sh
 #%include actions/pull.sh

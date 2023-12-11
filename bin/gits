@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-GITS_software_version="1.3.2"
+GITS_software_version="1.4.0"
 GITS_software_version_message="(C) Tai Kedzierski, GPLv3. https://github.com/taikedz/git-shortcuts"
 
 
@@ -1288,7 +1288,7 @@ gits:checkout() {
     . <(args:use:local ?target -- "$@") ; 
 
     if [[ -z "$target" ]]; then
-        gits:run checkout master
+        gits:run checkout "$(gits:prefs:get mastername)"
         return
     fi
 
@@ -1573,16 +1573,17 @@ gits:commit:check_master() {
     setting=allow_master_commits
     onbranch="$(git status | head -n1 | grep -oP '(?<=On branch )[^\s]+')"
     allowmaster="$(gits:prefs:get "$setting")"
+    mastername="$(gits:prefs:get "mastername")"
 
-    if [[ "$onbranch" = master ]]; then
+    if [[ "$onbranch" = "$mastername" ]]; then
         if [[ "$allowmaster" = false ]]; then
-            out:fail "You must not commit on master. Try moving your changes with 'git stash' and 'git checkout' before comitting again."
+            out:fail "You must not commit on '$mastername'. Try moving your changes with 'git stash' and 'git checkout' before comitting again."
 
         elif [[ "$allowmaster" = true ]]; then
             return 0
 
         else
-            if askuser:confirm "${CYEL}You are comitting on master - continue ?${CDEF}"; then
+            if askuser:confirm "${CYEL}You are comitting on $mastername' - continue ?${CDEF}"; then
                 gits:prefs:advise "$setting" "true"
                 return 0
             fi
@@ -1644,6 +1645,14 @@ gits:log() {
     fi
 
     gits:pager gits:run log "${options[@]}" "$@"
+}
+gits:master() {
+    . <(args:use:local ?target -- "$@") ; 
+    if [[ -z "$target" ]]; then
+        gits:prefs:get "mastername"
+    else
+        gits:prefs:put "mastername" "$target"
+    fi
 }
 ##bash-libs: varify.sh @ de7210ba (2.1.21.3)
 
@@ -2826,6 +2835,9 @@ gits:main() {
         ;;
     log)
         gits:log "$@"
+        ;;
+    master)
+        gits:master "$@"
         ;;
     profile)
         gits:profiles:_dispatch "$@"

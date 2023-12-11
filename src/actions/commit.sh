@@ -93,16 +93,17 @@ gits:commit:check_master() {
     setting=allow_master_commits
     onbranch="$(git status | head -n1 | grep -oP '(?<=On branch )[^\s]+')"
     allowmaster="$(gits:prefs:get "$setting")"
+    mastername="$(gits:prefs:get "mastername")"
 
-    if [[ "$onbranch" = master ]]; then
+    if [[ "$onbranch" = "$mastername" ]]; then
         if [[ "$allowmaster" = false ]]; then
-            out:fail "You must not commit on master. Try moving your changes with 'git stash' and 'git checkout' before comitting again."
+            out:fail "You must not commit on '$mastername'. Try moving your changes with 'git stash' and 'git checkout' before comitting again."
 
         elif [[ "$allowmaster" = true ]]; then
             return 0
 
         else
-            if askuser:confirm "${CYEL}You are comitting on master - continue ?${CDEF}"; then
+            if askuser:confirm "${CYEL}You are comitting on $mastername' - continue ?${CDEF}"; then
                 gits:prefs:advise "$setting" "true"
                 return 0
             fi
