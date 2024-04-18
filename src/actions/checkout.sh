@@ -21,6 +21,11 @@
 $%function gits:checkout(?target) {
 
     if [[ -z "$target" ]]; then
+        local main_name="$(gits:prefs:get mastername)"
+        if [[ -z "$main_name" ]]; then
+            echo "No master altname defined"
+            return
+        fi
         gits:run checkout "$(gits:prefs:get mastername)"
         return
     fi
