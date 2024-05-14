@@ -33,9 +33,24 @@ gits:prefs:filepath() {
         [[ "$searchdir" != / ]] || out:fail "'$PWD' is not in a git repository."
     done
 
-    echo "$searchdir/.git-shortcuts"
+    local prefsdir="$searchdir/.git-shortcuts"
+    local prefsfile="$prefsdir/prefs"
+    [[ -d "$prefsdir" ]] || {
+        if [[ -f "$prefsdir" ]]; then
+            mv "$prefsdir" "$prefsdir.prefs"
+        fi
+
+        mkdir "$prefsdir"
+        echo '*' > "$prefsdir/.gitignore"
+
+        if [[ -f "$prefsdir.prefs" ]]; then
+            mv "$prefsdir.prefs" "$prefsfile"
+        fi
+    }
+
+    echo "$prefsfile"
 }
 
 gits:prefs:advise() {
-    out:info "Set '$1 = $2' in .git-shortcuts to make this decision permanent."
+    out:info "Set '$1 = $2' in .git-shortcuts/prefs to make this decision permanent."
 }
