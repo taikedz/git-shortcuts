@@ -57,6 +57,9 @@ gits:main() {
     fs)
         gits:status:fetch "$@"
         ;;
+    fp)
+        gits:fp "$@"
+        ;;
     status)
         gits:status:short "$@"
         ;;

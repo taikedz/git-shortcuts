@@ -8,6 +8,7 @@
 #%include actions/checkout.sh
 #%include actions/clone.sh
 #%include actions/commit.sh
+#%include actions/fetch-prune.sh
 #%include actions/log.sh
 #%include actions/master.sh
 #%include actions/profiles.sh
