@@ -1,20 +1,20 @@
 # Git Shortcuts
 
-A utility to help with long-winded git commands that are frequently useful (and so frequently typed), and some common activities can be sped-up a little.
+A utility to help with long-winded git commands that are frequently useful (therefore frequently typed), and some common activities can be sped-up a little.
 
 This tool can either be used to run commands using shorthands, or just to provide reminders, letting you type them yourself (learn by doing!)
 
-You can re-alias your git command to gits: `alias git=gits`. This will still allow aut-complete to work. Any commands not implemented in `gits` will simply pass through to the native git command.
+You can re-alias your git command to gits: `alias git=gits`. This will still allow auto-complete to work. Any commands not implemented in `gits` will simply pass through to the native git command.
 
 ## Features
 
-`gits` provides short-hand commands for common long-winded or hard-to-remember git commands. It prints the commands it runs, and then executes them. If you want to use it just to show the commands as reminders, set `GITS_no_execute=true` in your environment or `~/.bashrc` file
+`gits` provides short-hand commands for common long-winded or hard-to-remember git commands.
 
 Find out your current status
 
     $ gits
-    /home/tai/git/github/taikedz/git-shortcuts
-    git status -sb -uall 
+    /home/user/git/github/taikedz/git-shortcuts
+    git status -sb -uall
     ## master...origin/master [ahead 1]
 
     (see also: gits fs)
@@ -23,13 +23,13 @@ Do a fetch/status check
 
     $ gits fs
 
-See diffs, always in colour (set `GIT_use_less_ms=0` in your environment to view in `less` pager)
+See diffs, always in colour
 
     $ gits file1 file2 file3
 
-Commit the same files
+Commit the same files - use up arrow and tack on `-m "MESSAGE"`
 
-    $ gits file1 file2 file3 -m my commit message
+    $ gits file1 file2 file3 -m "My commit message"
 
 ... and get warnings if you commit on master ...
 
@@ -49,11 +49,11 @@ See the log in color, with decorations (if your system's default config doesn't 
     1a94b82 Add pull check, change log command options
 
 
-See the full log graph, in colour, with decorations, in oneline mode
+See the log graph, in colour, with decorations, in oneline mode
 
-    $ gits log -g
+    $ gits log -g [-a]
 
-    # versus `git log --graph --oneline --all --decorate=short --color`
+    # versus `git log [--all] --graph --oneline --decorate=short --color`
 
 Save and apply different profiles
 
@@ -68,19 +68,22 @@ Save and apply different profiles
       Name:  Professional Name
       Email: coder@site.net
 
-Commit with an alternate profile
+Controlled rebase - determine what section of your current branch to move to a new base, rather than rely on auto-detection of the shared root
 
-    $ gits . -m/user2
+    $ gits rebase oldbase newbase
 
-    # sets user2's details in `config user.name` and `config user.email`,
-    #  commits,
-    #  then reverts
+Folder branch checkout - use the current branch as a folder for a new branch, or reuse current folder branch for a new folder branch
 
+    $ git checkout -b feature-1  # ---> "feature-1" branch created and switched to
+    $ gits fbranch task1         # ---> "feature-1/task1" branch created and switched to
+    $ gits fbranch task2         # ---> "feature-1/task2" branch created and switched to
+
+Ticket detection - detect a ticket number and apply it on commit message
+
+    $ gits ticket-pattern '^[A-Z]+-[0-9]+'
+                                 # default pattern is '^(?:[A-Z]+-)?[0-9]'
+    $ gits checkout -b TKT-123-demonstrate-ticket
+    $ gits . -m Some work        # ----> Creates a commit with message "TKT-123 Some work"
 
 ( and more to come ... )
 
-# Contributing
-
-This tool is written using [Bash Builder](https://gitlab.com/taikedz/bash-builder). You are welcome to contribute changes and additional features you think would be helpful.
-
-The specific goals of Git Shortcuts is to provide a tool that provides short-hand ways of performing long-winded tasks or inconveniently lengthy commands.
