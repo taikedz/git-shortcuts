@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-GITS_software_version="1.5.1"
+GITS_software_version="1.5.2"
 GITS_software_version_message="(C) Tai Kedzierski, GPLv3. https://github.com/taikedz/git-shortcuts"
 
 
@@ -1565,12 +1565,15 @@ gits:log() {
             shift
             ;;
         graph|-g)
-            options+=(--graph --all)
+            options+=(--graph)
             shift
             ;;
         long|-l)
             add_short=false
             shift
+            ;;
+        all|-a)
+            options+=(--all)
             ;;
         *)
             break

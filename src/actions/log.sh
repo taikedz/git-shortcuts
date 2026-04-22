@@ -31,12 +31,15 @@ gits:log() {
             shift
             ;;
         graph|-g)
-            options+=(--graph --all)
+            options+=(--graph)
             shift
             ;;
         long|-l)
             add_short=false
             shift
+            ;;
+        all|-a)
+            options+=(--all)
             ;;
         *)
             break
