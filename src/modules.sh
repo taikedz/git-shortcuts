@@ -19,3 +19,4 @@
 #%include actions/clean.sh
 #%include actions/version.sh
 #%include actions/remote.sh
+#%include actions/biggest.sh

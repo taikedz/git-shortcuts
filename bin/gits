@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-GITS_software_version="1.5.2"
+GITS_software_version="1.5.3"
 GITS_software_version_message="(C) Tai Kedzierski, GPLv3. https://github.com/taikedz/git-shortcuts"
 
 
@@ -2466,6 +2466,9 @@ gits:remote:set-url() {
         gits:run remote add "$remote" "$url"
     fi
 }
+gits:biggest() {
+    git rev-list --objects --all | git cat-file --batch-check='%(objectsize) %(rest)' | sed -n 's/^//p' | sort -rn | head -n 10 | numfmt --to=iec-i --suffix=B --field=1
+}
 
 gits:main() {
 
@@ -2498,6 +2501,15 @@ gits:main() {
     help)
         autohelp:print help
         ;;
+
+    # Keep the rest alphabeticl please:
+
+    biggest)
+        gits:biggest "$@"
+        ;;
+    branch)
+        gits:branch:_dispatch "$@"
+        ;;
     clean)
         gits:clean "$@"
         ;;
@@ -2507,14 +2519,17 @@ gits:main() {
     co|checkout)
         gits:checkout "$@"
         ;;
-    fs)
-        gits:status:fetch "$@"
+    diff)
+        gits:diff "$@"
         ;;
     fp)
         gits:fp "$@"
         ;;
-    status)
-        gits:status:short "$@"
+    fs)
+        gits:status:fetch "$@"
+        ;;
+    gc)
+        gits:gc-full "$@"
         ;;
     log)
         gits:log "$@"
@@ -2525,23 +2540,17 @@ gits:main() {
     profile)
         gits:profiles:_dispatch "$@"
         ;;
-    push)
-        gits:push "$@"
-        ;;
     pull)
         gits:pull:_dispatch "$@"
         ;;
-    gc)
-        gits:gc-full "$@"
-        ;;
-    branch)
-        gits:branch:_dispatch "$@"
-        ;;
-    diff)
-        gits:diff "$@"
+    push)
+        gits:push "$@"
         ;;
     remote)
         gits:remote:_dispatch "$@"
+        ;;
+    status)
+        gits:status:short "$@"
         ;;
     version)
         gits:version:_dispatch "$@"
