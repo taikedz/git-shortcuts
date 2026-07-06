@@ -93,6 +93,9 @@ gits:main() {
     remote)
         gits:remote:_dispatch "$@"
         ;;
+    root)
+        gits:root "$@"
+        ;;
     status)
         gits:status:short "$@"
         ;;

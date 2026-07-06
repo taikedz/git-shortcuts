@@ -2469,6 +2469,19 @@ gits:remote:set-url() {
 gits:biggest() {
     git rev-list --objects --all | git cat-file --batch-check='%(objectsize) %(rest)' | sed -n 's/^//p' | sort -rn | head -n 10 | numfmt --to=iec-i --suffix=B --field=1
 }
+gits:root() {
+    topdir="$(readlink -f $(pwd))"
+    gitdir="$topdir"
+    while [[ "$gitdir" != / ]]; do
+        if [[ -f "$gitdir/.git/config" ]]; then
+            echo "$gitdir"
+            return 0
+        fi
+        gitdir="$(dirname "$gitdir")"
+    done
+    out:warn "$topdir is not under a git repository"
+    return 1
+}
 
 gits:main() {
 
@@ -2548,6 +2561,9 @@ gits:main() {
         ;;
     remote)
         gits:remote:_dispatch "$@"
+        ;;
+    root)
+        gits:root "$@"
         ;;
     status)
         gits:status:short "$@"
