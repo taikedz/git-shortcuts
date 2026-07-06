@@ -1058,135 +1058,57 @@ gits:store:get-dir() {
     echo "$storedir"
 }
 
-GITS_PASSTHRU_COMMANDS=(
-    add
-#    branch
-#    checkout
-#    clean
-#    clone
-#    diff
-#    log
-#    pull
-#    push
-#    remote
-#    status
-    mv
-    reset
-    rm
-    bisect
-    grep
-    show
-#    rebase
-    tag
-    fetch
-)
+# ---- Keep the following alphabetical
 
-gits:passthru:check() {
-    . <(args:use:local keyword -- "$@") ; 
-    local command
-    for command in "${GITS_PASSTHRU_COMMANDS[@]}"; do
-        if [[ "$command" = "$keyword" ]]; then
-            return 0
-        fi
-    done
-    return 1
+gits:biggest() {
+    git rev-list --objects --all | git cat-file --batch-check='%(objectsize) %(rest)' | sed -n 's/^//p' | sort -rn | head -n 10 | numfmt --to=iec-i --suffix=B --field=1
 }
-
-gits:passthru:run() {
-    /usr/bin/env git "$@"
-}
-gits:status:short() {
-    local dirs=(: "$@")
-    local d
-
-    [[ -n "${dirs[@]:1}" ]] || dirs=(: .)
-
-    for d in "${dirs[@]:1}"; do
-        [[ -d "$d" ]] || continue
-        (cd "$d"
-        out:info "$PWD"
-        gits:run status -sb -uall
-        )
-    done
-}
-
-gits:status:fetch() {
-    local dirs=(: "$@")
-    local d
-
-    [[ -n "${dirs[@]:1}" ]] || dirs=(: .)
-
-    for d in "${dirs[@]:1}"; do
-        [[ -d "$d" ]] || continue
-        (cd "$d"
-        out:info "$PWD"
-        gits:run fetch --all
-        gits:run status -uall
-        )
-    done
-}
-
-### diff [RANGE] ARGUMENTS ... Usage:help-diff
+### gits branch [all] Usage:help-branch
 #
-# Display diffs in colour
-#
-# The RANGE option can be specified as "/" optinally followed by a first number,
-#   optionally followed by another "/", optionally followed by a second number
-#
-# The first slash specified on its own causes the comparison to be from HEAD to current state, useful for diffing files that have been staged
-#
-# A subsequent first number N diffs from HEAD~$N to HEAD
-#
-# A subsequent second slash causes diff from HEAD~$N to current state, even if staged
-#
-# A final second number M causes a diff from HEAD~$N to HEAD~$M
-#
-# Examples:
-#
-# See diffs for files ; will show nothing if files are staged
-#
-#   gits file1 file2
-#
-# See diffs for staged files
-#
-#   gits / file1 file2
-#
-# See diffs from HEAD~3 to HEAD
-#
-#   gits /3/
+# Show information about the current branch, or all branches
 #
 ###/doc
 
-gits:diff() {
-    gits:commit:check "$@" || {
-        gits:commit "$@"
-        return
-    }
+gits:branch:show-upstream() {
+    local info
+    info="$(gits:run status -sb|grep -oP '^## \K.+'|sed 's/\.\.\./ --> /')"
 
-    local arg parameters
-    parameters=(:)
-
-    arg="${1:-}"
-
-    gits:local-help-noempty diff "$@"
-
-    if [[ "$arg" = / ]]; then
-        shift
-        parameters+=(HEAD -- "$@")
-    elif [[ "$arg" =~ ^/([0-9]+)$ ]]; then
-        shift
-        parameters+=(HEAD~"${BASH_REMATCH[1]}" -- "$@")
-    elif [[ "$arg" =~ ^/([0-9]+)/$ ]]; then
-        shift
-        parameters+=(HEAD~"${BASH_REMATCH[1]}" HEAD -- "$@")
-    elif [[ "$arg" =~ ^/([0-9]+)/([0-9]+)$ ]]; then
-        shift
-        parameters+=(HEAD~"${BASH_REMATCH[1]}" HEAD~"${BASH_REMATCH[2]}" -- "$@")
+    if echo "$info"|grep -o ' --> ' -q ; then
+        echo "$info"
     else
-        parameters+=("$@")
+        echo "$info --> (none)"
+    fi
+}
+
+gits:branch:show-all() {
+    gits:run branch -vv
+}
+
+gits:branch:_dispatch() {
+    gits:local-help branch "$@"
+
+    if [[ -z "$*" ]]; then
+        gits:branch:show-upstream
+        exit
     fi
 
-    gits:pager gits:run diff --color "${parameters[@]:1}"
+    case "$1" in
+    all)
+        gits:branch:show-all
+        ;;
+    *)
+        out:fail "Unknown 'branch' sub-operation '$1'"
+        ;;
+    esac
+}
+
+gits:branch:_list_all() {
+    (git branch -r --no-color; git branch --no-color)|sed -r 's/^[ *]*//'
+}
+
+gits:branch:_exists() {
+    . <(args:use:local branch -- "$@") ; 
+    gits:branch:_list_all | grep -qP "^$branch$"
 }
 ### gits co [ ... ] Usage:help-checkout
 # Checkout shorthands
@@ -1235,6 +1157,9 @@ gits:checkout() {
     fi
 }
 
+gits:clean() {
+    git clean -dfx
+}
 ### gits clone URL [PATH] Usage:help-clone
 #
 # Clone a git URL, creating intermediary directories.
@@ -1523,6 +1448,68 @@ gits:commit:check_master() {
 
     return 0
 }
+### diff [RANGE] ARGUMENTS ... Usage:help-diff
+#
+# Display diffs in colour
+#
+# The RANGE option can be specified as "/" optinally followed by a first number,
+#   optionally followed by another "/", optionally followed by a second number
+#
+# The first slash specified on its own causes the comparison to be from HEAD to current state, useful for diffing files that have been staged
+#
+# A subsequent first number N diffs from HEAD~$N to HEAD
+#
+# A subsequent second slash causes diff from HEAD~$N to current state, even if staged
+#
+# A final second number M causes a diff from HEAD~$N to HEAD~$M
+#
+# Examples:
+#
+# See diffs for files ; will show nothing if files are staged
+#
+#   gits file1 file2
+#
+# See diffs for staged files
+#
+#   gits / file1 file2
+#
+# See diffs from HEAD~3 to HEAD
+#
+#   gits /3/
+#
+###/doc
+
+gits:diff() {
+    gits:commit:check "$@" || {
+        gits:commit "$@"
+        return
+    }
+
+    local arg parameters
+    parameters=(:)
+
+    arg="${1:-}"
+
+    gits:local-help-noempty diff "$@"
+
+    if [[ "$arg" = / ]]; then
+        shift
+        parameters+=(HEAD -- "$@")
+    elif [[ "$arg" =~ ^/([0-9]+)$ ]]; then
+        shift
+        parameters+=(HEAD~"${BASH_REMATCH[1]}" -- "$@")
+    elif [[ "$arg" =~ ^/([0-9]+)/$ ]]; then
+        shift
+        parameters+=(HEAD~"${BASH_REMATCH[1]}" HEAD -- "$@")
+    elif [[ "$arg" =~ ^/([0-9]+)/([0-9]+)$ ]]; then
+        shift
+        parameters+=(HEAD~"${BASH_REMATCH[1]}" HEAD~"${BASH_REMATCH[2]}" -- "$@")
+    else
+        parameters+=("$@")
+    fi
+
+    gits:pager gits:run diff --color "${parameters[@]:1}"
+}
 gits:fp() {
     local remotes=($(git remote))
     local rem
@@ -1532,361 +1519,6 @@ gits:fp() {
     done
 }
 
-### log [OPTIONS] [FILES ...] Usage:help-log
-#
-# Show short log, in colour.
-#
-# The following option shortcuts are specific to gits:
-#
-# files|-f
-#   Show files. Equivalent to standard option --name-only
-#
-# graph|-g
-#   Show as graph, on a single line unless "long" is specified
-#
-# long|-l
-#   Show long format instead of oneline format
-#
-# The [FILES ...] are optional, and can also be any other git-log standard options
-#
-###/doc
-
-gits:log() {
-    local arg
-    gits:local-help log "$@"
-
-    local options=(--color --decorate=short)
-    local add_short=true
-
-    for arg in "$@"; do
-        case "$arg" in
-        files|-f)
-            options+=(--name-only)
-            shift
-            ;;
-        graph|-g)
-            options+=(--graph)
-            shift
-            ;;
-        long|-l)
-            add_short=false
-            shift
-            ;;
-        all|-a)
-            options+=(--all)
-            ;;
-        *)
-            break
-            ;;
-        esac
-    done
-
-    if [[ "$add_short" = true ]]; then
-        options+=(--oneline)
-    fi
-
-    gits:pager gits:run log "${options[@]}" "$@"
-}
-gits:master() {
-    . <(args:use:local ?target -- "$@") ; 
-    if [[ -z "$target" ]]; then
-        gits:prefs:get "mastername"
-    else
-        gits:prefs:put "mastername" "$target"
-    fi
-}
-##bash-libs: varify.sh @ 60378968 (2.1.6)
-
-### Varify Usage:bbuild
-# Make a string into a valid variable name or file name
-#
-# Collapses any string of invalid characters into a single underscore
-#
-# For example
-#
-# 	varify:var "http://example.com"
-#
-# returns
-#
-# 	http_example.com
-#
-###/doc
-
-### varify:var Usage:bbuild
-#
-# Valid characters for varify:var are:
-#
-# * a-z
-# * A-Z
-# * 0-9
-# * underscore ("_")
-###/doc
-function varify:var {
-    echo "$*" | sed -r 's/[^a-zA-Z0-9_]/_/g'
-}
-
-### varify:fil Usage:bbuild
-#
-# Valid characters for varify:fil are:
-#
-# * a-z
-# * A-Z
-# * 0-9
-# * underscore ("_")
-# * dash ("-")
-# * period (".")
-#
-# Can be used to produce filenames.
-#
-###/doc
-function varify:fil {
-    echo "$*" | sed -r 's/[^a-zA-Z0-9_.-]/_/g'
-}
-
-### gits profile Usage:help-profile
-#
-# Save user/email configurations, apply them, manage them
-#
-# gits profile
-#   Display the user name and email currently configured on the repo
-#
-# gits profile list
-#   Display the defined profiles
-#
-# gits profile get PROFILE
-#   Display the settings for specified profile
-# 
-# gits profile delete PROFILE
-#   Delete a saved profile
-#
-# gits profile save PROFILE USER_NAME EMAIL
-#   Save user name and email to the named profile
-#
-# gits profile apply PROFILE
-#   Configure the repo to use the specified profile
-#
-###/doc
-
-## todo
-# gits profile profilename user.name="User Name" user.email="mail@domain.tld" diff.tool=meld comit.editor=vim
-#
-# save literal config names->values to the key file
-# iterate over config to apply
-# allow a `profile edit` command
-
-gits:profiles:_dispatch() {
-    gits:local-help profile "$@"
-
-    local action
-    if [[ -z "$*" ]]; then
-        echo "Current config:"
-        echo "  Name:  $(git config user.name)"
-        echo "  Email: $(git config user.email)"
-
-    else
-        action="${1:-}" ; shift || :
-        case "$action" in
-        save|get|delete|list|apply)
-            gits:profiles:"$action" "$@"
-            ;;
-        *)
-            out:fail "Unknown action"
-        esac
-    fi
-}
-
-gits:profiles:get() {
-    local profiled profilename
-    profilename="$(varify:fil "${1:-}")"; shift || out:fail "No profile name specified"
-    profilef="$(gits:store:get-file profiles/$profilename.txt)"
-
-    [[ -f "$profilef" ]] || out:fail "No such profile '$profilename'"
-
-    gits:profiles:display "$profilef"
-}
-
-gits:profiles:delete() {
-    local profiled profilename
-    profilename="$(varify:fil "${1:-}")"; shift || out:fail "No profile name specified"
-    profilef="$(gits:store:get-file profiles/$profilename.txt)"
-
-    [[ -f "$profilef" ]] || out:fail "No such profile '$profilename'"
-
-    if [[ "$GITS_no_ask_profile_delte" != true ]]; then
-        askuser:confirm "Delete '$profilename'?" || return
-    fi
-    rm "$profilef"
-}
-
-gits:profiles:display() {
-    sed -r 's/^/\t/' "$1"
-}
-
-gits:profiles:apply() {
-    local profiled profilename uname umail
-    profilename="$(varify:fil "${1:-}")"; shift || out:fail "No profile name specified"
-    profilef="$(gits:store:get-file profiles/$profilename.txt)"
-
-    [[ -f "$profilef" ]] || out:fail "No such profile '$profilename'"
-
-    uname="$(readkv:require Name "$profilef")" #|| out:fail "Name could not be read"
-    umail="$(readkv:require Mail "$profilef")" #|| out:fail "Mail could not be read"
-
-    gits:run config user.name "$uname"
-    gits:run config user.email "$umail"
-}
-
-gits:profiles:save() {
-    local profiled profilename username useremail
-    profilename="$(varify:fil "${1:-}")"; shift || out:fail "No profile name specified"
-    username="${1:-}"; shift || out:fail "No user name specified"
-    useremail="${1:-}"; shift || out:fail "No user email specified"
-    
-    profilef="$(gits:store:create-get-file profiles/$profilename.txt)"
-    echo -e "Name=$username\nMail=$useremail" > "$profilef"
-}
-
-gits:profiles:list() {
-    local profiled pfile sname
-    profiled="$(gits:store:get-dir profiles)"
-
-    for pfile in "$profiled/"*.txt ; do
-        sname="${pfile##*/}"
-        sname="${sname%.*}"
-
-        echo "$sname"
-        gits:profiles:display "$pfile"
-    done
-}
-### gits push [REMOTE [BRANCH]] Usage:help-push
-#
-# Push to remote; if not set, automatically guess and set upstream
-#
-###/doc
-
-gits:push() {
-    gits:local-help push "$@"
-
-    local remote branch localbranch pushargs
-    pushargs=(push --set-upstream)
-    localbranch="$(gits:current-branch)"
-
-    [[ -n "$localbranch" ]] || out:fail "Could not get local branch !"
-
-    if [[ -z "$*" ]]; then
-        gits:run "${pushargs[@]}" origin "$localbranch"
-        return
-    fi
-
-    remote="$1"; shift
-
-    gits:remote-exists "$remote" || out:fail "No such remote '$remote'"
-
-    if [[ -z "$*" ]]; then
-        gits:run "${pushargs[@]}" "$remote" "$localbranch"
-    else
-        branch="$1"; shift
-
-        gits:run "${pushargs[@]}" "$remote" "$branch"
-    fi
-}
-### pull [backtrack [N]] Usage:help-pull
-#
-# gits pull
-# ---------
-#
-# With no options, performs a fetch and checks for fast-forwardability.
-#
-# If the remote branch is simply ahead, the local branch will be fast-forwarded.
-#
-# If the branches have diverged, no pull is performed and a warning is printed.
-#
-# gits pull backtrack [N]
-# -----------------------
-#
-# If your local and remote branches have diverged due to upstream having rebased, do a backtrack.
-#
-#   gits pull backtrack 5
-#
-# revert 5 commits, then pull
-#
-#   gits pull backtrack
-#
-# reverts each commit one by one until no longer on a divergent path
-#
-###/doc
-
-
-gits:pull:_dispatch() {
-    gits:local-help pull "$@"
-
-    local action="${1:-}" ; shift || :
-
-    if [[ -z "$action" ]]; then
-        gits:pull:checking
-        return
-    fi
-
-    case "$action" in
-    backtrack)
-        gits:pull:backtrack "$@"
-        ;;
-    *)
-        out:fail "No subaction specified"
-        ;;
-    esac
-}
-
-gits:pull:checking() {
-    gits:run fetch --all
-    
-    if git status | grep -qP "^Changes|^Untracked"; then
-        gits:run status -sb
-        out:fail "Changes detected, cannot pull"
-
-    elif git status | grep -qP "^Your branch is (up to date|up-to-date)"; then
-        gits:status:short
-        echo
-        out:info "Everything up to date"
-
-    elif git status | grep -qP "^Your branch.+can be fast-forwarded"; then
-
-        gits:run pull
-
-    elif gits:branch:show-upstream | grep -qP ' \(none\)$'; then
-        out:fail "No remote detected"
-
-    else
-        gits:run status -uall
-        echo
-        out:fail "Unsure whether to pull yet."
-
-    fi
-}
-
-gits:pull:backtrack() {
-    local back_by="${1:-}"; shift || :
-    local headnum
-
-    if [[ -n "$back_by" ]]; then
-        [[ "$back_by" =~ $PAT_num ]] || out:fail "NaN: $back_by"
-        gits:run reset --hard HEAD~$back_by
-
-    else
-        while git status | grep -q diverged; do
-            git reset --hard HEAD~1
-        done
-
-    fi
-
-    headnum="$(git log --graph --oneline --all --decorate=short |grep '(HEAD ->' -n|cut -f1 -d:)"
-
-    gits:run log --graph --oneline --all -n${headnum}
-
-    askuser:confirm "Pull now ?" || exit 1
-
-    gits:run pull
-}
 
 ##bash-libs: args.sh @ 60378968 (2.1.6)
 
@@ -2061,56 +1693,508 @@ gits:gc-full() {
         -c gc.pruneExpire=now \
         gc
 }
-### gits branch [all] Usage:help-branch
+### log [OPTIONS] [FILES ...] Usage:help-log
 #
-# Show information about the current branch, or all branches
+# Show short log, in colour.
+#
+# The following option shortcuts are specific to gits:
+#
+# files|-f
+#   Show files. Equivalent to standard option --name-only
+#
+# graph|-g
+#   Show as graph, on a single line unless "long" is specified
+#
+# long|-l
+#   Show long format instead of oneline format
+#
+# The [FILES ...] are optional, and can also be any other git-log standard options
 #
 ###/doc
 
-gits:branch:show-upstream() {
-    local info
-    info="$(gits:run status -sb|grep -oP '^## \K.+'|sed 's/\.\.\./ --> /')"
+gits:log() {
+    local arg
+    gits:local-help log "$@"
 
-    if echo "$info"|grep -o ' --> ' -q ; then
-        echo "$info"
+    local options=(--color --decorate=short)
+    local add_short=true
+
+    for arg in "$@"; do
+        case "$arg" in
+        files|-f)
+            options+=(--name-only)
+            shift
+            ;;
+        graph|-g)
+            options+=(--graph)
+            shift
+            ;;
+        long|-l)
+            add_short=false
+            shift
+            ;;
+        all|-a)
+            options+=(--all)
+            ;;
+        *)
+            break
+            ;;
+        esac
+    done
+
+    if [[ "$add_short" = true ]]; then
+        options+=(--oneline)
+    fi
+
+    gits:pager gits:run log "${options[@]}" "$@"
+}
+gits:master() {
+    . <(args:use:local ?target -- "$@") ; 
+    if [[ -z "$target" ]]; then
+        gits:prefs:get "mastername"
     else
-        echo "$info --> (none)"
+        gits:prefs:put "mastername" "$target"
     fi
 }
+GITS_PASSTHRU_COMMANDS=(
+    add
+#    branch
+#    checkout
+#    clean
+#    clone
+#    diff
+#    log
+#    pull
+#    push
+#    remote
+#    status
+    mv
+    reset
+    rm
+    bisect
+    grep
+    show
+#    rebase
+    tag
+    fetch
+)
 
-gits:branch:show-all() {
-    gits:run branch -vv
+gits:passthru:check() {
+    . <(args:use:local keyword -- "$@") ; 
+    local command
+    for command in "${GITS_PASSTHRU_COMMANDS[@]}"; do
+        if [[ "$command" = "$keyword" ]]; then
+            return 0
+        fi
+    done
+    return 1
 }
 
-gits:branch:_dispatch() {
-    gits:local-help branch "$@"
+gits:passthru:run() {
+    /usr/bin/env git "$@"
+}
+##bash-libs: varify.sh @ 60378968 (2.1.6)
 
+### Varify Usage:bbuild
+# Make a string into a valid variable name or file name
+#
+# Collapses any string of invalid characters into a single underscore
+#
+# For example
+#
+# 	varify:var "http://example.com"
+#
+# returns
+#
+# 	http_example.com
+#
+###/doc
+
+### varify:var Usage:bbuild
+#
+# Valid characters for varify:var are:
+#
+# * a-z
+# * A-Z
+# * 0-9
+# * underscore ("_")
+###/doc
+function varify:var {
+    echo "$*" | sed -r 's/[^a-zA-Z0-9_]/_/g'
+}
+
+### varify:fil Usage:bbuild
+#
+# Valid characters for varify:fil are:
+#
+# * a-z
+# * A-Z
+# * 0-9
+# * underscore ("_")
+# * dash ("-")
+# * period (".")
+#
+# Can be used to produce filenames.
+#
+###/doc
+function varify:fil {
+    echo "$*" | sed -r 's/[^a-zA-Z0-9_.-]/_/g'
+}
+
+### gits profile Usage:help-profile
+#
+# Save user/email configurations, apply them, manage them
+#
+# gits profile
+#   Display the user name and email currently configured on the repo
+#
+# gits profile list
+#   Display the defined profiles
+#
+# gits profile get PROFILE
+#   Display the settings for specified profile
+# 
+# gits profile delete PROFILE
+#   Delete a saved profile
+#
+# gits profile save PROFILE USER_NAME EMAIL
+#   Save user name and email to the named profile
+#
+# gits profile apply PROFILE
+#   Configure the repo to use the specified profile
+#
+###/doc
+
+## todo
+# gits profile profilename user.name="User Name" user.email="mail@domain.tld" diff.tool=meld comit.editor=vim
+#
+# save literal config names->values to the key file
+# iterate over config to apply
+# allow a `profile edit` command
+
+gits:profiles:_dispatch() {
+    gits:local-help profile "$@"
+
+    local action
     if [[ -z "$*" ]]; then
-        gits:branch:show-upstream
-        exit
+        echo "Current config:"
+        echo "  Name:  $(git config user.name)"
+        echo "  Email: $(git config user.email)"
+
+    else
+        action="${1:-}" ; shift || :
+        case "$action" in
+        save|get|delete|list|apply)
+            gits:profiles:"$action" "$@"
+            ;;
+        *)
+            out:fail "Unknown action"
+        esac
+    fi
+}
+
+gits:profiles:get() {
+    local profiled profilename
+    profilename="$(varify:fil "${1:-}")"; shift || out:fail "No profile name specified"
+    profilef="$(gits:store:get-file profiles/$profilename.txt)"
+
+    [[ -f "$profilef" ]] || out:fail "No such profile '$profilename'"
+
+    gits:profiles:display "$profilef"
+}
+
+gits:profiles:delete() {
+    local profiled profilename
+    profilename="$(varify:fil "${1:-}")"; shift || out:fail "No profile name specified"
+    profilef="$(gits:store:get-file profiles/$profilename.txt)"
+
+    [[ -f "$profilef" ]] || out:fail "No such profile '$profilename'"
+
+    if [[ "$GITS_no_ask_profile_delte" != true ]]; then
+        askuser:confirm "Delete '$profilename'?" || return
+    fi
+    rm "$profilef"
+}
+
+gits:profiles:display() {
+    sed -r 's/^/\t/' "$1"
+}
+
+gits:profiles:apply() {
+    local profiled profilename uname umail
+    profilename="$(varify:fil "${1:-}")"; shift || out:fail "No profile name specified"
+    profilef="$(gits:store:get-file profiles/$profilename.txt)"
+
+    [[ -f "$profilef" ]] || out:fail "No such profile '$profilename'"
+
+    uname="$(readkv:require Name "$profilef")" #|| out:fail "Name could not be read"
+    umail="$(readkv:require Mail "$profilef")" #|| out:fail "Mail could not be read"
+
+    gits:run config user.name "$uname"
+    gits:run config user.email "$umail"
+}
+
+gits:profiles:save() {
+    local profiled profilename username useremail
+    profilename="$(varify:fil "${1:-}")"; shift || out:fail "No profile name specified"
+    username="${1:-}"; shift || out:fail "No user name specified"
+    useremail="${1:-}"; shift || out:fail "No user email specified"
+    
+    profilef="$(gits:store:create-get-file profiles/$profilename.txt)"
+    echo -e "Name=$username\nMail=$useremail" > "$profilef"
+}
+
+gits:profiles:list() {
+    local profiled pfile sname
+    profiled="$(gits:store:get-dir profiles)"
+
+    for pfile in "$profiled/"*.txt ; do
+        sname="${pfile##*/}"
+        sname="${sname%.*}"
+
+        echo "$sname"
+        gits:profiles:display "$pfile"
+    done
+}
+### pull [backtrack [N]] Usage:help-pull
+#
+# gits pull
+# ---------
+#
+# With no options, performs a fetch and checks for fast-forwardability.
+#
+# If the remote branch is simply ahead, the local branch will be fast-forwarded.
+#
+# If the branches have diverged, no pull is performed and a warning is printed.
+#
+# gits pull backtrack [N]
+# -----------------------
+#
+# If your local and remote branches have diverged due to upstream having rebased, do a backtrack.
+#
+#   gits pull backtrack 5
+#
+# revert 5 commits, then pull
+#
+#   gits pull backtrack
+#
+# reverts each commit one by one until no longer on a divergent path
+#
+###/doc
+
+
+gits:pull:_dispatch() {
+    gits:local-help pull "$@"
+
+    local action="${1:-}" ; shift || :
+
+    if [[ -z "$action" ]]; then
+        gits:pull:checking
+        return
     fi
 
-    case "$1" in
-    all)
-        gits:branch:show-all
+    case "$action" in
+    backtrack)
+        gits:pull:backtrack "$@"
         ;;
     *)
-        out:fail "Unknown 'branch' sub-operation '$1'"
+        out:fail "No subaction specified"
         ;;
     esac
 }
 
-gits:branch:_list_all() {
-    (git branch -r --no-color; git branch --no-color)|sed -r 's/^[ *]*//'
+gits:pull:checking() {
+    gits:run fetch --all
+    
+    if git status | grep -qP "^Changes|^Untracked"; then
+        gits:run status -sb
+        out:fail "Changes detected, cannot pull"
+
+    elif git status | grep -qP "^Your branch is (up to date|up-to-date)"; then
+        gits:status:short
+        echo
+        out:info "Everything up to date"
+
+    elif git status | grep -qP "^Your branch.+can be fast-forwarded"; then
+
+        gits:run pull
+
+    elif gits:branch:show-upstream | grep -qP ' \(none\)$'; then
+        out:fail "No remote detected"
+
+    else
+        gits:run status -uall
+        echo
+        out:fail "Unsure whether to pull yet."
+
+    fi
 }
 
-gits:branch:_exists() {
-    . <(args:use:local branch -- "$@") ; 
-    gits:branch:_list_all | grep -qP "^$branch$"
+gits:pull:backtrack() {
+    local back_by="${1:-}"; shift || :
+    local headnum
+
+    if [[ -n "$back_by" ]]; then
+        [[ "$back_by" =~ $PAT_num ]] || out:fail "NaN: $back_by"
+        gits:run reset --hard HEAD~$back_by
+
+    else
+        while git status | grep -q diverged; do
+            git reset --hard HEAD~1
+        done
+
+    fi
+
+    headnum="$(git log --graph --oneline --all --decorate=short |grep '(HEAD ->' -n|cut -f1 -d:)"
+
+    gits:run log --graph --oneline --all -n${headnum}
+
+    askuser:confirm "Pull now ?" || exit 1
+
+    gits:run pull
 }
-gits:clean() {
-    git clean -dfx
+### gits push [REMOTE [BRANCH]] Usage:help-push
+#
+# Push to remote; if not set, automatically guess and set upstream
+#
+###/doc
+
+gits:push() {
+    gits:local-help push "$@"
+
+    local remote branch localbranch pushargs
+    pushargs=(push --set-upstream)
+    localbranch="$(gits:current-branch)"
+
+    [[ -n "$localbranch" ]] || out:fail "Could not get local branch !"
+
+    if [[ -z "$*" ]]; then
+        gits:run "${pushargs[@]}" origin "$localbranch"
+        return
+    fi
+
+    remote="$1"; shift
+
+    gits:remote-exists "$remote" || out:fail "No such remote '$remote'"
+
+    if [[ -z "$*" ]]; then
+        gits:run "${pushargs[@]}" "$remote" "$localbranch"
+    else
+        branch="$1"; shift
+
+        gits:run "${pushargs[@]}" "$remote" "$branch"
+    fi
 }
+
+### remote [ACTION ...] Usage:help-remote
+#
+# Display data for remotes, or perfrom rename/assignment options
+#
+# gits remote ls
+#   list remotes and their URLs
+#
+# gits remote set REMOTE URL
+#   Assign URL to REMOTE
+#   If the remote does not exist, user is prompted before creating it.
+#
+# gits remote sub REMOTE SUBSTITUTION ...
+#   perform a substitution SUBSTITUTION on remote REMOTE
+#   SUBSTITUTION is a `sed` substitution string
+#   E.g. : gits remote sub origin "s|github.com/me|gitlab.com/myself|"
+#
+###/doc
+
+gits:remote:_dispatch() {
+    . <(args:use:local ?action -- "$@") ; 
+    gits:local-help remote "$action" "$@"
+
+    [[ -n "$action" ]] || {
+        gits:remote:list
+        exit
+    }
+
+    case "$action" in
+    ls|list)
+        gits:remote:list
+        ;;
+    sub)
+        gits:remote:sub "$@"
+        ;;
+    set|set-url)
+        gits:remote:set-url "$@"
+        ;;
+    esac
+}
+
+gits:remote:sub() {
+    . <(args:use:local remote sub -- "$@") ; 
+    local remote_url
+
+    remote_url="$(git remote get-url "$remote")"
+    [[ -n "$remote_url" ]] || out:fail "No URL for '$remote'"
+
+    gits:run remote set-url "$remote" "$(echo "$remote_url"|sed -r -e "$sub")"
+}
+
+gits:remote:list() {
+    git remote | while read remote; do
+        echo "$remote : $(git remote get-url "$remote")"
+    done
+}
+
+gits:remote:set-url() {
+    . <(args:use:local remote url -- "$@") ; 
+    if git remote | grep -Eq "^$remote$" ; then
+        gits:run remote set-url "$remote" "$url"
+    else
+        askuser:confirm "Create new remote '$remote' poitning to '$url' ?" || exit
+        gits:run remote add "$remote" "$url"
+    fi
+}
+gits:root() {
+    topdir="$(readlink -f $(pwd))"
+    gitdir="$topdir"
+    while [[ "$gitdir" != / ]]; do
+        if [[ -f "$gitdir/.git/config" ]]; then
+            echo "$gitdir"
+            return 0
+        fi
+        gitdir="$(dirname "$gitdir")"
+    done
+    out:warn "$topdir is not under a git repository"
+    return 1
+}
+gits:status:short() {
+    local dirs=(: "$@")
+    local d
+
+    [[ -n "${dirs[@]:1}" ]] || dirs=(: .)
+
+    for d in "${dirs[@]:1}"; do
+        [[ -d "$d" ]] || continue
+        (cd "$d"
+        out:info "$PWD"
+        gits:run status -sb -uall
+        )
+    done
+}
+
+gits:status:fetch() {
+    local dirs=(: "$@")
+    local d
+
+    [[ -n "${dirs[@]:1}" ]] || dirs=(: .)
+
+    for d in "${dirs[@]:1}"; do
+        [[ -d "$d" ]] || continue
+        (cd "$d"
+        out:info "$PWD"
+        gits:run fetch --all
+        gits:run status -uall
+        )
+    done
+}
+
 ##bash-libs: app/git.sh @ 60378968 (2.1.6)
 
 ### Git handlers Usage:bbuild
@@ -2399,88 +2483,6 @@ gits:version:_dispatch() {
         out:fail "Invalid action '$action'. Try --help"
         ;;
     esac
-}
-
-### remote [ACTION ...] Usage:help-remote
-#
-# Display data for remotes, or perfrom rename/assignment options
-#
-# gits remote ls
-#   list remotes and their URLs
-#
-# gits remote set REMOTE URL
-#   Assign URL to REMOTE
-#   If the remote does not exist, user is prompted before creating it.
-#
-# gits remote sub REMOTE SUBSTITUTION ...
-#   perform a substitution SUBSTITUTION on remote REMOTE
-#   SUBSTITUTION is a `sed` substitution string
-#   E.g. : gits remote sub origin "s|github.com/me|gitlab.com/myself|"
-#
-###/doc
-
-gits:remote:_dispatch() {
-    . <(args:use:local ?action -- "$@") ; 
-    gits:local-help remote "$action" "$@"
-
-    [[ -n "$action" ]] || {
-        gits:remote:list
-        exit
-    }
-
-    case "$action" in
-    ls|list)
-        gits:remote:list
-        ;;
-    sub)
-        gits:remote:sub "$@"
-        ;;
-    set|set-url)
-        gits:remote:set-url "$@"
-        ;;
-    esac
-}
-
-gits:remote:sub() {
-    . <(args:use:local remote sub -- "$@") ; 
-    local remote_url
-
-    remote_url="$(git remote get-url "$remote")"
-    [[ -n "$remote_url" ]] || out:fail "No URL for '$remote'"
-
-    gits:run remote set-url "$remote" "$(echo "$remote_url"|sed -r -e "$sub")"
-}
-
-gits:remote:list() {
-    git remote | while read remote; do
-        echo "$remote : $(git remote get-url "$remote")"
-    done
-}
-
-gits:remote:set-url() {
-    . <(args:use:local remote url -- "$@") ; 
-    if git remote | grep -Eq "^$remote$" ; then
-        gits:run remote set-url "$remote" "$url"
-    else
-        askuser:confirm "Create new remote '$remote' poitning to '$url' ?" || exit
-        gits:run remote add "$remote" "$url"
-    fi
-}
-gits:biggest() {
-    git rev-list --objects --all | git cat-file --batch-check='%(objectsize) %(rest)' | sed -n 's/^//p' | sort -rn | head -n 10 | numfmt --to=iec-i --suffix=B --field=1
-}
-gits:root() {
-    topdir="$(readlink -f $(pwd))"
-    gitdir="$topdir"
-    while [[ "$gitdir" != / ]]; do
-        if [[ -f "$gitdir/.git/config" ]]; then
-            echo "$gitdir"
-            return 0
-        fi
-        gitdir="$(dirname "$gitdir")"
-    done
-    out:warn "$topdir is not under a git repository"
-    return 1
 }
 
 gits:main() {
